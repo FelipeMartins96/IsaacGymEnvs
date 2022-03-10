@@ -7,10 +7,7 @@ class MyNewTask(VecTask):
     
     def __init__(self, cfg, sim_device, graphics_device_id, headless):
         self.cfg = cfg
-        self.cfg["env"]["numObservations"] = 2
-        self.cfg["env"]["numActions"] = 2
 
-        self.cfg["env"]['envSpacing'] = 1.0
         self.max_episode_length = 500
 
         super().__init__(self.cfg, sim_device, graphics_device_id, headless)
@@ -27,11 +24,34 @@ class MyNewTask(VecTask):
         self.up_axis_idx = self.set_sim_params_up_axis(self.sim_params, 'z')
         self.sim = super().create_sim(self.device_id, self.graphics_device_id, self.physics_engine, self.sim_params)
         self._create_ground_plane()
-        self._create_envs(self.num_envs, self.cfg["env"]['envSpacing'], int(self.num_envs**0.5))
+        self._create_envs(self.num_envs, 0, int(self.num_envs**0.5))
 
-    def _create_envs(self, num_envs, env_spacing, num_rows):
-        pass
-            
+    def _create_envs(self, num_envs, env_spacing, num_per_row):
+        spacing = 1.0
+        lower = gymapi.Vec3(-spacing, -spacing, 0.0)
+        upper = gymapi.Vec3(spacing, spacing, spacing)
+
+        asset_options = gymapi.AssetOptions()
+        asset_options.density = 1.0
+        sphere_asset = self.gym.create_sphere(self.sim, 0.1, asset_options)
+        pose = gymapi.Transform()
+        pose.p.z = 2.0
+        # asset is rotated z-up by default, no additional rotations needed
+        pose.r = gymapi.Quat(0.0, 0.0, 0.0, 1.0)
+
+        self.balls = []
+        self.envs = []
+        for i in range(self.num_envs):
+            env_ptr = self.gym.create_env(
+                self.sim, lower, upper, num_per_row
+            )
+            ball_handle = self.gym.create_actor(
+                env_ptr, sphere_asset, pose, 'ball', i, 1, 0
+            )
+
+            self.envs.append(env_ptr)
+            self.balls.append(ball_handle)
+
     def _create_ground_plane(self):
         plane_params = gymapi.PlaneParams()
         # set the normal force to be z dimension
