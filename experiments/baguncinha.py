@@ -20,6 +20,11 @@ presents the following:
 - Apply body linear velocity
 """
 
+# TODO: Cube body with forces being applied directly
+# TODO: Test using Local and global coordinates
+# TODO: Add Ball
+# TODO: Add point bodies to robot with fixed joints to Cube, and apply forces/velocity to it
+# TODO: Add wheels to robot and apply forces/velocity to it
 
 def print_asset_info(asset, name):
     print("======== Asset info %s: ========" % (name))
@@ -199,39 +204,6 @@ for i in range(num_envs):
         # add box
         name = 'robot'
         actor_handle = gym.create_actor(env, asset_box, gymapi.Transform(p=gymapi.Vec3(0.0,0.0,box_size/2)), name, i, 0)
-
-        pass
-        # # add moving boxes to env
-        # for dx in range(3):
-        #     name = 'moving_box_{}'.format(dx)
-        #     actor_handles.append(gym.create_actor(env, box_handles[0], gymapi.Transform(p=gymapi.Vec3(dx, 0., 0.1)), name, i, 0))
-        #     # set shape physics properties for moving boxes
-        #     shape_props = gym.get_actor_rigid_shape_properties(env, actor_handles[-1])
-        #     # set_actor_rigid_shape_properties enables setting shape properties for rigid body
-        #     # Properties include friction, rolling_friction, torsion_friction, restitution etc.
-        #     shape_props[0].friction = 0.
-        #     shape_props[0].rolling_friction = 0.
-        #     shape_props[0].torsion_friction = 0.
-        #     gym.set_actor_rigid_shape_properties(env, actor_handles[-1], shape_props)
-        #     # set visual property like color to moving boxes
-        #     gym.set_rigid_body_color(env, actor_handles[-1], 0, gymapi.MESH_VISUAL, gymapi.Vec3(0., 1., 0.))
-        #     # apply linear velocity
-
-        # # add target boxes to env
-        # target_box_names = ['target_box_low', 'target_box_med', 'target_box_high']
-        # target_box_positions = [gymapi.Vec3(0., 2., 0.1), gymapi.Vec3(1, 2., 0.1), gymapi.Vec3(2, 2., 0.1)]
-        # target_box_color = [gymapi.Vec3(0., 1., 0.), gymapi.Vec3(2, 0.1, 2.), gymapi.Vec3(1., 0., 0.)]
-        # for dx in range(3):
-        #     actor_handles.append(gym.create_actor(env, box_handles[dx], gymapi.Transform(p=target_box_positions[dx]), target_box_names[dx], i, 0))
-        #     # set shape physics properties for target boxes
-        #     shape_props = gym.get_actor_rigid_shape_properties(env, actor_handles[-1])
-        #     # set coeffecient of friction
-        #     shape_props[0].friction = 0.
-        #     shape_props[0].rolling_friction = 0.
-        #     gym.set_actor_rigid_shape_properties(env, actor_handles[-1], shape_props)
-        #     shape_props[0].torsion_friction = 0.
-        #     # set visual property like color to target boxes
-        #     gym.set_rigid_body_color(env, actor_handles[-1], 0, gymapi.MESH_VISUAL, target_box_color[dx])
 
 
 # look at the first env
