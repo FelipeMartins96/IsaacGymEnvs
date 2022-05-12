@@ -20,11 +20,12 @@ presents the following:
 - Apply body linear velocity
 """
 
-# TODO: Cube body with forces being applied directly
-# TODO: Test using Local and global coordinates
-# TODO: Add Ball
-# TODO: Add point bodies to robot with fixed joints to Cube, and apply forces/velocity to it
-# TODO: Add wheels to robot and apply forces/velocity to it
+# TODO: 0 file:///home/fbm2/Documents/isaacgym/docs/programming/simsetup.html#custom-mouse-keyboard-input
+# TODO: 1 Test using Local and global coordinates
+# TODO: 1 Cube body with forces being applied directly
+# TODO: 3 Add Ball
+# TODO: 4 Add point bodies to robot with fixed joints to Cube, and apply forces/velocity to it
+# TODO: 5 Add wheels to robot and apply forces/velocity to it
 
 def print_asset_info(asset, name):
     print("======== Asset info %s: ========" % (name))
@@ -182,43 +183,65 @@ box_size = 0.08
 box_options = gymapi.AssetOptions()
 asset_box = gym.create_box(sim, box_size, box_size, box_size, box_options)
 
+sp = gym.get_asset_rigid_shape_properties(asset_box)
+sp[0].friction = 0.0
+gym.set_asset_rigid_shape_properties(asset_box, sp)
+
 print_asset_info(asset_box, "Box")
-
-
-# create ball asset with gravity disabled
-# asset_options = gymapi.AssetOptions()
-# asset_ball = gym.create_capsule(sim, 0.2, 0.0, asset_options)
-
-
 
 print('Creating %d environments' % num_envs)
 for i in range(num_envs):
     # create env
     env = gym.create_env(sim, env_lower, env_upper, 1)
-    envs.append(env)
 
-    # TODO: Setar ação para a caixa, velocidade e rotacao, usando DOF
-
-    # Scenario 1: Source boxes collide with target boxes with varying densities
-    if i == 0:
-        # add box
-        name = 'robot'
-        actor_handle = gym.create_actor(env, asset_box, gymapi.Transform(p=gymapi.Vec3(0.0,0.0,box_size/2)), name, i, 0)
-
+    # add box
+    name = 'robot'
+    actor_handle = gym.create_actor(env, asset_box, gymapi.Transform(p=gymapi.Vec3(0.0,0.0,box_size/2)), name, i, 0)
 
 # look at the first env
-cam_pos = gymapi.Vec3(2., 2., 2)
+cam_pos = gymapi.Vec3(0., -2., 2)
 cam_target = gymapi.Vec3(0., 0., 0)
 gym.viewer_camera_look_at(viewer, None, cam_pos, cam_target)
 
-while not gym.query_viewer_has_closed(viewer):
-    body_states = gym.get_actor_rigid_body_states(envs[0], actor_handle, gymapi.STATE_ALL)
-    gym.set_rigid_linear_velocity(envs[0], gym.get_rigid_handle(envs[0], 'robot', 'box'), gymapi.Vec3(0.5, 0., 0.))
+# subscribe to input events. This allows input to be used to interact
+# with the simulation
+gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_W, "w")
+gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_A, "a")
+gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_S, "s")
+gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_D, "d")
+gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_Q, "q")
+gym.subscribe_viewer_keyboard_event(viewer, gymapi.KEY_E, "e")
 
-    print(body_states['pose']['p'])
+v_lin = gymapi.Vec3(0., 0., 0.)
+v_ang = gymapi.Vec3(0., 0., 0.)
+
+while not gym.query_viewer_has_closed(viewer):
+
     # step the physics
     gym.simulate(sim)
     gym.fetch_results(sim, True)
+
+
+    # Get input actions from the viewer and handle them appropriately
+    for evt in gym.query_viewer_action_events(viewer):
+        if evt.value == 0:
+            v_lin = gymapi.Vec3(0., 0., 0.)
+            v_ang = gymapi.Vec3(0., 0., 0.)
+        elif evt.action == "w":
+            v_lin = gymapi.Vec3(0., 0.5, 0.)
+        elif evt.action == "a":
+            v_lin = gymapi.Vec3(-0.5, 0., 0.)
+        elif evt.action == "s":
+            v_lin = gymapi.Vec3(0., -0.5, 0.)
+        elif evt.action == "d":
+            v_lin = gymapi.Vec3(0.5, 0., 0.)
+        elif evt.action == "q":
+            v_ang = gymapi.Vec3(0., 0., 10.)
+        elif evt.action == "e":
+            v_ang = gymapi.Vec3(0., 0., -10.)
+
+    gym.set_rigid_linear_velocity(env, gym.get_rigid_handle(env,'robot','box'), v_lin)
+    gym.set_rigid_angular_velocity(env, gym.get_rigid_handle(env,'robot','box'), v_ang)
 
     # update the viewer
     gym.step_graphics(sim)
