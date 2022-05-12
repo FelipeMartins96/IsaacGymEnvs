@@ -1,0 +1,2 @@
+- Friction is set on body properties and plane, which one is used?
+- even with friction 0.0's the body stopped rotating
