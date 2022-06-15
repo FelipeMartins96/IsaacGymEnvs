@@ -1,0 +1,219 @@
+<robot name="vss_3v3_field">
+    <link name="field_center"></link>
+
+    <link name="wall_0">
+        <visual>
+            <geometry>
+                <box size="1.5 0.025 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="1.5 0.025 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_0" type="fixed">
+        <origin xyz="0.0 0.6625 0.025" />
+        <parent link="field_center" />
+        <child link="wall_0" />
+    </joint>
+
+    <link name="wall_1">
+        <visual>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_1" type="fixed">
+        <origin xyz="0.7625 0.4375 0.025" />
+        <parent link="field_center" />
+        <child link="wall_1" />
+    </joint>
+
+    <link name="wall_2">
+        <visual>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_2" type="fixed">
+        <origin xyz="0.8125 0.2125 0.025" />
+        <parent link="field_center" />
+        <child link="wall_2" />
+    </joint>
+
+    <link name="wall_3">
+        <visual>
+            <geometry>
+                <box size="0.025 0.450 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.025 0.450 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_3" type="fixed">
+        <origin xyz="0.8625 0.0 0.025" />
+        <parent link="field_center" />
+        <child link="wall_3" />
+    </joint>
+
+    <link name="wall_4">
+        <visual>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_4" type="fixed">
+        <origin xyz="0.8125 -0.2125 0.025" />
+        <parent link="field_center" />
+        <child link="wall_4" />
+    </joint>
+
+    <link name="wall_5">
+        <visual>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_5" type="fixed">
+        <origin xyz="0.7625 -0.4375 0.025" />
+        <parent link="field_center" />
+        <child link="wall_5" />
+    </joint>
+
+    <link name="wall_6">
+        <visual>
+            <geometry>
+                <box size="1.5 0.025 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="1.5 0.025 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_6" type="fixed">
+        <origin xyz="0.0 -0.6625 0.025" />
+        <parent link="field_center" />
+        <child link="wall_6" />
+    </joint>
+
+    <link name="wall_7">
+        <visual>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_7" type="fixed">
+        <origin xyz="-0.7625 -0.4375 0.025" />
+        <parent link="field_center" />
+        <child link="wall_7" />
+    </joint>
+
+    <link name="wall_8">
+        <visual>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_8" type="fixed">
+        <origin xyz="-0.8125 -0.2125 0.025" />
+        <parent link="field_center" />
+        <child link="wall_8" />
+    </joint>
+
+    <link name="wall_9">
+        <visual>
+            <geometry>
+                <box size="0.025 0.450 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.025 0.450 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_9" type="fixed">
+        <origin xyz="-0.8625 0.0 0.025" />
+        <parent link="field_center" />
+        <child link="wall_9" />
+    </joint>
+
+    <link name="wall_10">
+        <visual>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.075 0.025 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_10" type="fixed">
+        <origin xyz="-0.8125 0.2125 0.025" />
+        <parent link="field_center" />
+        <child link="wall_10" />
+    </joint>
+
+    <link name="wall_11">
+        <visual>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.025 0.475 0.05" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="center_wall_11" type="fixed">
+        <origin xyz="-0.7625 0.4375 0.025" />
+        <parent link="field_center" />
+        <child link="wall_11" />
+    </joint>
+</robot>
