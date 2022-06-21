@@ -1,7 +1,7 @@
 import isaacgym
 import torch
 from tasks import VSS
-
+import time
 cfg_task = {
     'physics_engine': 'physx'
 }
@@ -19,9 +19,13 @@ env = VSS(
     graphics_device_id=0,
     headless=False
     )
-
-env.reset()
-act = torch.zeros((1,2))
-done = torch.zeros(1)
-while done == 0:
-    obs, reward, done, info = env.step(act)
+obs = env.reset()
+while True:
+    # scale = input("Scale:")
+    scale = 0.0
+    act = torch.ones((1,2)) * torch.tensor([0.0, float(scale)])
+    done = torch.zeros(1)
+    while done == 0:
+        print(obs['obs'][0][1], obs['obs'][0][0])
+        obs, reward, done, info = env.step(act)
+        time.sleep(0.1)

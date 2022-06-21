@@ -11,7 +11,7 @@ class VSS(VecTask):
     def __init__(self, cfg, sim_device, graphics_device_id, headless):
         self.cfg = cfg
 
-        self.max_episode_length = 100
+        self.max_episode_length = 10
 
         self.cfg["env"]["numObservations"] = 8
         self.cfg["env"]["numActions"] = 2
@@ -29,6 +29,9 @@ class VSS(VecTask):
         self.actor_pos = self.root_state.view(self.num_envs, -1, 13)[..., 0:3]
         self.robot_quat = self.root_state.view(self.num_envs, -1, 13)[:, 2, 3:7]
 
+        self.reset_idx(np.arange(self.num_envs))
+        self.compute_observations()
+
     def create_sim(self):
     #    - set up-axis
         # set the up axis to be z-up given that assets are y-up by default
@@ -39,8 +42,6 @@ class VSS(VecTask):
         plane_params = gymapi.PlaneParams()
         # set the normal force to be z dimension
         plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0)
-        plane_params.static_friction = 0.0
-        plane_params.dynamic_friction = 0.0
         self.gym.add_ground(self.sim, plane_params)
     #    - set up environments
         lower = gymapi.Vec3(-1, -1, 0.0)
@@ -73,13 +74,13 @@ class VSS(VecTask):
             # Create environment
             env_ptr = self.gym.create_env(self.sim, lower, upper, int(np.sqrt(self.num_envs)))
             # add field
-            field_handle = self.gym.create_actor(env_ptr, field_asset, gymapi.Transform(p=gymapi.Vec3(0, 0, 0)), 'field', group=i, filter=0)
+            field_handle = self.gym.create_actor(env_ptr, field_asset, gymapi.Transform(), 'field', group=i, filter=0)
 
             # add ball
-            ball_handle = self.gym.create_actor(env_ptr, ball_asset, gymapi.Transform(p=gymapi.Vec3(0, 0, ball_radius)), 'ball', group=i, filter=0)
+            ball_handle = self.gym.create_actor(env_ptr, ball_asset, gymapi.Transform(), 'ball', group=i, filter=0)
             
             # add robot
-            robot_handle = self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(p=gymapi.Vec3(-0.2, 0.0, 0.0375)), 'robot', group=i, filter=0)
+            robot_handle = self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(), 'robot', group=i, filter=0)
 
             self.envs.append(env_ptr)
             self.robot_handles.append(robot_handle)
@@ -91,14 +92,16 @@ class VSS(VecTask):
     def pre_physics_step(self, actions):
         # implement pre-physics simulation code here
         #    - e.g. apply actions
-        MAX_FORCE = 5.5
-        
-        actions_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
+        actions.to(self.device)
+        force_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
+        torque_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
         # import pdb; pdb.set_trace()
-        actions_tensor[:, -2:, 1] = actions.to(self.device).squeeze() * MAX_FORCE
-        forces = gymtorch.unwrap_tensor(actions_tensor)
+        force_tensor[:, -3, 1] = actions[:, 0]
+        torque_tensor[:, -3, 2] = actions[:, 1]
+        forces = gymtorch.unwrap_tensor(force_tensor)
+        torques = gymtorch.unwrap_tensor(torque_tensor)
         # apply only forces
-        self.gym.apply_rigid_body_force_tensors(self.sim, forces, None, gymapi.LOCAL_SPACE)
+        self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
 
     def post_physics_step(self):
         self.progress_buf += 1
@@ -111,33 +114,34 @@ class VSS(VecTask):
         self.compute_reward()
 
     def reset_idx(self, env_ids):
-        x_positions = 1.4 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
-        y_positions = 1.2 * (torch.rand((len(env_ids), 2), device=self.device) - 0.5)
+        print('env_idxs->', env_ids)
+        # x_positions = 1.4 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
+        # y_positions = 1.2 * (torch.rand((len(env_ids), 2), device=self.device) - 0.5)
 
-        self.actor_pos[env_ids, 1:, 0] = x_positions[:]
-        self.actor_pos[env_ids, 1:, 1] = y_positions[:]
-        self.actor_pos[env_ids, 1, 2] = 21.34 * 1/1000.0
-        self.actor_pos[env_ids, 2, 2] = 0.0375
+        self.actor_pos[env_ids, 1, 0] = torch.ones((len(env_ids),1), device=self.device) * 0.5
+        self.actor_pos[env_ids, 2, 0] = torch.ones((len(env_ids),1), device=self.device) * -0.5
+        self.actor_pos[env_ids, 1, 1] = torch.ones((len(env_ids),1), device=self.device) * 0
+        self.actor_pos[env_ids, 2, 1] = torch.ones((len(env_ids),1), device=self.device) * 0
+        # self.actor_pos[env_ids, 1, 2] = 21.34 * 1/1000.0
+        self.actor_pos[env_ids, 2, 2] = 0.1
 
 
-        # import pdb; pdb.set_trace()
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
         self.reset_buf[env_ids] = 0 
         self.progress_buf[env_ids] = 0
 
-    def compute_observations(self, env_ids=None):
-        if env_ids is None:
-            env_ids = np.arange(self.num_envs)
-
+    def compute_observations(self):
         self.gym.refresh_actor_root_state_tensor(self.sim)
 
         # Actors ids 0: field, 1: ball, 2: robot
-        self.obs_buf[env_ids, 0] = self.actor_pos[env_ids, 2, 0].squeeze()
-        self.obs_buf[env_ids, 1] = self.actor_pos[env_ids, 2, 1].squeeze()
-        self.obs_buf[env_ids, 2] = self.actor_pos[env_ids, 1, 0].squeeze()
-        self.obs_buf[env_ids, 3] = self.actor_pos[env_ids, 1, 1].squeeze()
-        self.obs_buf[env_ids, 4:8] = self.robot_quat[env_ids, :].squeeze()
+        self.obs_buf[:, 0] = self.actor_pos[:, 2, 2].squeeze()
+        self.obs_buf[:, 1] = self.actor_pos[:, 2, 0].squeeze()
+        # self.obs_buf[env_ids, 0] = self.actor_pos[env_ids, 2, 0].squeeze()
+        # self.obs_buf[env_ids, 1] = self.actor_pos[env_ids, 2, 1].squeeze()
+        self.obs_buf[:, 2] = self.actor_pos[:, 1, 0].squeeze()
+        self.obs_buf[:, 3] = self.actor_pos[:, 1, 1].squeeze()
+        self.obs_buf[:, 4:8] = self.robot_quat[:, :].squeeze()
 
     
     def compute_reward(self):

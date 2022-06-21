@@ -2,33 +2,14 @@
     <link name="robot_body">
         <visual>
             <geometry>
-                <box size="0.075 0.075 0.075" />
+                <box size="0.1 0.1 0.1" />
             </geometry>
         </visual>
         <collision>
             <geometry>
-                <box size="0.075 0.075 0.075" />
+                <box size="0.1 0.1 0.1" />
             </geometry>
         </collision>
-        <inertial>
-            <mass value="1" />
-        </inertial>
     </link>
-
-    <link name="left_wheel"></link>
-
-    <link name="right_wheel"></link>
-
-    <joint name="left_wheel_axis" type="fixed">
-        <origin xyz="-0.0375 0.0 -0.02" />
-        <parent link="robot_body" />
-        <child link="left_wheel" />
-    </joint>
-
-    <joint name="right_wheel_axis" type="fixed">
-        <origin xyz="0.0375 0.0 -0.02" />
-        <parent link="robot_body" />
-        <child link="right_wheel" />
-    </joint>
 
 </robot>
