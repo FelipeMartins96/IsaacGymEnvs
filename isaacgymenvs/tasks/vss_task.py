@@ -11,12 +11,17 @@ class VSS(VecTask):
     def __init__(self, cfg, sim_device, graphics_device_id, headless):
         self.cfg = cfg
 
-        self.max_episode_length = 200
+        self.max_episode_length = 100
 
         self.cfg["env"]["numObservations"] = 8
         self.cfg["env"]["numActions"] = 2
 
         super().__init__(config=self.cfg, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless)
+
+        if self.viewer != None:
+            cam_pos = gymapi.Vec3(0.0, -2.0, 2.4)
+            cam_target = gymapi.Vec3(0.0, 0.0, 0.0)
+            self.gym.viewer_camera_look_at(self.viewer, None, cam_pos, cam_target)
 
         _root_tensor = self.gym.acquire_actor_root_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
