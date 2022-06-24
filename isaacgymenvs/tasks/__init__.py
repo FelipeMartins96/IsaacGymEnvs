@@ -41,7 +41,7 @@ from tasks.quadcopter import Quadcopter
 from tasks.shadow_hand import ShadowHand
 from tasks.trifinger import Trifinger
 
-from tasks.vss_task import VSS
+from tasks.vss import VSS
 from tasks.new import MyNewTask
 
 # Mappings from strings to environments
