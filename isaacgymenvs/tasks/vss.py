@@ -11,7 +11,7 @@ class VSS(VecTask):
     def __init__(self, cfg, sim_device, graphics_device_id, headless):
         self.cfg = cfg
 
-        self.max_episode_length = 5
+        self.max_episode_length = 20
 
         self.cfg["env"]["numObservations"] = 8
         self.cfg["env"]["numActions"] = 2
@@ -28,6 +28,7 @@ class VSS(VecTask):
         self.root_state = gymtorch.wrap_tensor(_root_tensor)
         self.actor_pos = self.root_state.view(self.num_envs, -1, 13)[..., 0:3]
         self.robot_quat = self.root_state.view(self.num_envs, -1, 13)[:, 2, 3:7]
+        self.robot_state = self.root_state.view(self.num_envs, -1, 13)[:, 2, :]
 
         self.reset_idx(np.arange(self.num_envs))
         self.compute_observations()
@@ -96,8 +97,8 @@ class VSS(VecTask):
         force_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
         torque_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
         # import pdb; pdb.set_trace()
-        force_tensor[:, -3, 1] = actions[:, 0]
-        torque_tensor[:, -3, 2] = actions[:, 1]
+        force_tensor[:, -1, 1] = actions[:, 0]
+        torque_tensor[:, -1, 2] = actions[:, 1]
         forces = gymtorch.unwrap_tensor(force_tensor)
         torques = gymtorch.unwrap_tensor(torque_tensor)
         # apply only forces
@@ -107,11 +108,13 @@ class VSS(VecTask):
         x_positions = 1.4 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
         y_positions = 1.2 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
 
+        # TODO: refactor using robot and ball state and initial states
         self.actor_pos[env_ids, 1:, 0] = x_positions[:]
         self.actor_pos[env_ids, 1:, 1] = y_positions[:]
-        self.actor_pos[env_ids, 2, 2] = 0.052 # TODO: fix initial height collision
+        self.actor_pos[env_ids, 2, 2] = 0.05201 # TODO: fix initial height collision
         # TODO: randomize robot angles
-        # TODO: reset actor velocities
+        self.robot_state[env_ids, 3:7] *= torch.ones((len(env_ids), 4), device=self.device) * torch.tensor([0.0, 0.0, 0.0, 1.0], device=self.device) 
+        self.robot_state[env_ids, 7:] *= 0.0 
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
