@@ -11,7 +11,7 @@ class VSS(VecTask):
     def __init__(self, cfg, sim_device, graphics_device_id, headless):
         self.cfg = cfg
 
-        self.max_episode_length = 10
+        self.max_episode_length = 5
 
         self.cfg["env"]["numObservations"] = 8
         self.cfg["env"]["numActions"] = 2
@@ -103,54 +103,51 @@ class VSS(VecTask):
         # apply only forces
         self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
 
+    def reset_idx(self, env_ids):
+        x_positions = 1.4 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
+        y_positions = 1.2 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
+
+        self.actor_pos[env_ids, 1:, 0] = x_positions[:]
+        self.actor_pos[env_ids, 1:, 1] = y_positions[:]
+        self.actor_pos[env_ids, 2, 2] = 0.052 # TODO: fix initial height collision
+        # TODO: randomize robot angles
+        # TODO: reset actor velocities
+
+        self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
+
+        self.progress_buf[env_ids] = 0
+
+    def compute_reward(self):
+        # retrieve environment observations from buffer
+
+        # Actors ids 0: field, 1: ball, 2: robot
+        ball_pos = self.actor_pos[:, 1, :2]
+        robot_pos = self.actor_pos[:, 2, :2]
+
+        self.rew_buf[:] = compute_vss_reward(robot_pos, ball_pos)
+
+    def compute_observations(self):
+        # Actors ids 0: field, 1: ball, 2: robot
+        self.obs_buf[:, :2] = self.actor_pos[:, 2, :2]  # robot x, y
+        self.obs_buf[:, 2:6] = self.robot_quat[:, :]    # robot_quat
+        self.obs_buf[:, 6:8] = self.actor_pos[:, 1, :2] # ball x, y
+
     def post_physics_step(self):
         self.progress_buf += 1
 
+        # Refresh state tensors 
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+
+        # Calculate rewards
+        self.compute_reward()
+
+        # Reset dones (Reseting only on timeouts)
+        self.reset_buf = self.timeout_buf
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
             self.reset_idx(env_ids)
 
         self.compute_observations()
-        self.compute_reward()
-
-    def reset_idx(self, env_ids):
-        print('env_idxs->', env_ids)
-        # x_positions = 1.4 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
-        # y_positions = 1.2 * (torch.rand((len(env_ids), 2), device=self.device) - 0.5)
-
-        self.actor_pos[env_ids, 1, 0] = torch.ones((len(env_ids),1), device=self.device) * 0.5
-        self.actor_pos[env_ids, 2, 0] = torch.ones((len(env_ids),1), device=self.device) * -0.5
-        self.actor_pos[env_ids, 1, 1] = torch.ones((len(env_ids),1), device=self.device) * 0
-        self.actor_pos[env_ids, 2, 1] = torch.ones((len(env_ids),1), device=self.device) * 0
-        # self.actor_pos[env_ids, 1, 2] = 21.34 * 1/1000.0
-        self.actor_pos[env_ids, 2, 2] = 0.1
-
-
-        self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
-
-        self.reset_buf[env_ids] = 0 
-        self.progress_buf[env_ids] = 0
-
-    def compute_observations(self):
-        self.gym.refresh_actor_root_state_tensor(self.sim)
-
-        # Actors ids 0: field, 1: ball, 2: robot
-        self.obs_buf[:, 0] = self.actor_pos[:, 2, 2].squeeze()
-        self.obs_buf[:, 1] = self.actor_pos[:, 2, 0].squeeze()
-        # self.obs_buf[env_ids, 0] = self.actor_pos[env_ids, 2, 0].squeeze()
-        # self.obs_buf[env_ids, 1] = self.actor_pos[env_ids, 2, 1].squeeze()
-        self.obs_buf[:, 2] = self.actor_pos[:, 1, 0].squeeze()
-        self.obs_buf[:, 3] = self.actor_pos[:, 1, 1].squeeze()
-        self.obs_buf[:, 4:8] = self.robot_quat[:, :].squeeze()
-
-    
-    def compute_reward(self):
-        # retrieve environment observations from buffer
-        robot_pos = self.obs_buf[:, 0:2]
-        ball_pos = self.obs_buf[:, 2:4]
-
-        self.rew_buf[:], self.reset_buf[:] = compute_vss_reward(robot_pos, ball_pos, self.reset_buf, self.progress_buf, self.max_episode_length
-        )
 
 #####################################################################
 ###=========================jit functions=========================###
@@ -158,13 +155,7 @@ class VSS(VecTask):
 
 
 @torch.jit.script
-def compute_vss_reward(robot_pos, ball_pos, reset_buf, progress_buf, max_episode_length):
-    # type: (Tensor, Tensor, Tensor, Tensor, float) -> Tuple[Tensor, Tensor]
+def compute_vss_reward(robot_pos, ball_pos):
+    # type: (Tensor, Tensor) -> Tensor
     
-    # reward is combo of angle deviated from upright, velocity of cart, and velocity of pole moving
-    reward = -torch.linalg.norm(robot_pos-ball_pos, dim=1)
-
-    # adjust reward for reset agents
-    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset_buf)
-
-    return reward, reset
+    return -torch.linalg.norm(robot_pos-ball_pos, dim=1)

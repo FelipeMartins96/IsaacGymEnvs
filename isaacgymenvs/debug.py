@@ -20,12 +20,15 @@ env = VSS(
     headless=False
     )
 obs = env.reset()
+
+print(f"robot_x = {obs['obs'][0][0]}, robot_y = {obs['obs'][0][1]}")
+
 while True:
     # scale = input("Scale:")
-    scale = 0.0
-    act = torch.ones((1,2)) * torch.tensor([0.0, float(scale)])
+    step = 0
+    act = torch.ones((1,2)) * torch.tensor([0.0, float(step)])
     done = torch.zeros(1)
     while done == 0:
-        print(obs['obs'][0][1], obs['obs'][0][0])
         obs, reward, done, info = env.step(act)
-        time.sleep(0.1)
+        print(f"done = {done}, robot_x = {obs['obs'][0][0]}, robot_y = {obs['obs'][0][1]}")
+        time.sleep(1)
