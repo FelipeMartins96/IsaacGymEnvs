@@ -31,4 +31,5 @@ while True:
     done = torch.zeros(1)
     while not done.any():
         obs, reward, done, info = env.step(act)
+        print(f"robot_x = {obs['obs'][0][0]}, robot_y = {obs['obs'][0][1]}, robot_z = {obs['obs'][0][2]}")
         time.sleep(0.05)

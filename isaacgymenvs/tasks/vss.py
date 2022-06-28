@@ -13,7 +13,7 @@ class VSS(VecTask):
 
         self.max_episode_length = 20
 
-        self.cfg["env"]["numObservations"] = 8
+        self.cfg["env"]["numObservations"] = 9
         self.cfg["env"]["numActions"] = 2
 
         super().__init__(config=self.cfg, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless)
@@ -94,7 +94,6 @@ class VSS(VecTask):
             self.field_handles.append(field_handle)
         self.n_env_rigid_bodies = self.gym.get_env_rigid_body_count(env_ptr)
 
-
     def pre_physics_step(self, actions):
         # implement pre-physics simulation code here
         #    - e.g. apply actions
@@ -130,9 +129,9 @@ class VSS(VecTask):
 
     def compute_observations(self):
         # Actors ids 0: field, 1: ball, 2: robot
-        self.obs_buf[:, :2] = self.robot_root_state[:, :2]  # robot x, y
-        self.obs_buf[:, 2:6] = self.robot_root_state[:, 3:7]    # robot_quat
-        self.obs_buf[:, 6:8] = self.ball_root_state[:, :2] # ball x, y
+        self.obs_buf[:, :3] = self.robot_root_state[:, :3]  # robot x, y and z
+        self.obs_buf[:, 3:7] = self.robot_root_state[:, 3:7]    # robot_quat
+        self.obs_buf[:, 7:9] = self.ball_root_state[:, :2] # ball x, y
 
     def post_physics_step(self):
         self.progress_buf += 1
