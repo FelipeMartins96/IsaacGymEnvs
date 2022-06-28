@@ -5,7 +5,7 @@ import time
 cfg_task = {
     'physics_engine': 'physx'
 }
-cfg_task['env'] = {'numEnvs': 1}
+cfg_task['env'] = {'numEnvs': 2}
 cfg_task['sim'] = {
     'use_gpu_pipeline': True,
     'up_axis': 'z', 
@@ -29,6 +29,6 @@ while True:
     print(f'force = {force}')
     act = torch.ones((1,2)) * torch.tensor([force, 0.0])
     done = torch.zeros(1)
-    while done == 0:
+    while not done.any():
         obs, reward, done, info = env.step(act)
         time.sleep(0.05)

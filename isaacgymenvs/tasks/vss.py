@@ -25,10 +25,15 @@ class VSS(VecTask):
 
         _root_tensor = self.gym.acquire_actor_root_state_tensor(self.sim)
         self.gym.refresh_actor_root_state_tensor(self.sim)
-        self.root_state = gymtorch.wrap_tensor(_root_tensor)
-        self.actor_pos = self.root_state.view(self.num_envs, -1, 13)[..., 0:3]
-        self.robot_quat = self.root_state.view(self.num_envs, -1, 13)[:, 2, 3:7]
-        self.robot_state = self.root_state.view(self.num_envs, -1, 13)[:, 2, :]
+
+        self.root_state = gymtorch.wrap_tensor(_root_tensor).view(self.num_envs, 3, 13)
+
+        self.ball_root_state = self.root_state[:, 1]
+        self.robot_root_state = self.root_state[:, 2]
+
+        self.field_scale = torch.tensor([1.4, 1.2], dtype=torch.float, device=self.device, requires_grad=False)
+        self.ball_initial_height = 0.0
+        self.robot_initial_height = 0.052
 
         self.reset_idx(np.arange(self.num_envs))
         self.compute_observations()
@@ -105,16 +110,15 @@ class VSS(VecTask):
         self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
 
     def reset_idx(self, env_ids):
-        x_positions = 1.4 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
-        y_positions = 1.2 * (torch.rand((len(env_ids),2), device=self.device) - 0.5)
+        rand_pos = (torch.rand((len(env_ids), 2, 2), dtype=torch.float, device=self.device) - 0.5) * self.field_scale
 
-        # TODO: refactor using robot and ball state and initial states
-        self.actor_pos[env_ids, 1:, 0] = x_positions[:]
-        self.actor_pos[env_ids, 1:, 1] = y_positions[:]
-        self.actor_pos[env_ids, 2, 2] = 0.05201 # TODO: fix initial height collision
+        self.ball_root_state[env_ids, :2] = rand_pos[env_ids, 0]
+        self.ball_root_state[env_ids, 2] = self.ball_initial_height
+        self.ball_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.robot_root_state[env_ids, :2] = rand_pos[env_ids, 0]
+        self.robot_root_state[env_ids, 2] = self.robot_initial_height
+        self.robot_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         # TODO: randomize robot angles
-        self.robot_state[env_ids, 3:7] *= torch.ones((len(env_ids), 4), device=self.device) * torch.tensor([0.0, 0.0, 0.0, 1.0], device=self.device) 
-        self.robot_state[env_ids, 7:] *= 0.0 
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
@@ -122,18 +126,13 @@ class VSS(VecTask):
 
     def compute_reward(self):
         # retrieve environment observations from buffer
-
-        # Actors ids 0: field, 1: ball, 2: robot
-        ball_pos = self.actor_pos[:, 1, :2]
-        robot_pos = self.actor_pos[:, 2, :2]
-
-        self.rew_buf[:] = compute_vss_reward(robot_pos, ball_pos)
+        self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2])
 
     def compute_observations(self):
         # Actors ids 0: field, 1: ball, 2: robot
-        self.obs_buf[:, :2] = self.actor_pos[:, 2, :2]  # robot x, y
-        self.obs_buf[:, 2:6] = self.robot_quat[:, :]    # robot_quat
-        self.obs_buf[:, 6:8] = self.actor_pos[:, 1, :2] # ball x, y
+        self.obs_buf[:, :2] = self.robot_root_state[:, :2]  # robot x, y
+        self.obs_buf[:, 2:6] = self.robot_root_state[:, 3:7]    # robot_quat
+        self.obs_buf[:, 6:8] = self.ball_root_state[:, :2] # ball x, y
 
     def post_physics_step(self):
         self.progress_buf += 1
