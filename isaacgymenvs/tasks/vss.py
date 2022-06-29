@@ -38,6 +38,21 @@ class VSS(VecTask):
         self.reset_idx(np.arange(self.num_envs))
         self.compute_observations()
 
+    def reset_idx(self, env_ids):
+        rand_pos = (torch.rand((len(env_ids), 2, 2), dtype=torch.float, device=self.device) - 0.5) * self.field_scale * 0
+
+        self.ball_root_state[env_ids, :2] = rand_pos[env_ids, 0]
+        self.ball_root_state[env_ids, 2] = self.ball_initial_height
+        self.ball_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.robot_root_state[env_ids, :2] = rand_pos[env_ids, 0]
+        self.robot_root_state[env_ids, 2] = self.robot_initial_height
+        self.robot_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        # TODO: randomize robot angles
+
+        self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
+
+        self.progress_buf[env_ids] = 0
+
     def create_sim(self):
     #    - set up-axis
         # set the up axis to be z-up given that assets are y-up by default
@@ -108,20 +123,6 @@ class VSS(VecTask):
         # apply only forces
         self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
 
-    def reset_idx(self, env_ids):
-        rand_pos = (torch.rand((len(env_ids), 2, 2), dtype=torch.float, device=self.device) - 0.5) * self.field_scale
-
-        self.ball_root_state[env_ids, :2] = rand_pos[env_ids, 0]
-        self.ball_root_state[env_ids, 2] = self.ball_initial_height
-        self.ball_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
-        self.robot_root_state[env_ids, :2] = rand_pos[env_ids, 0]
-        self.robot_root_state[env_ids, 2] = self.robot_initial_height
-        self.robot_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
-        # TODO: randomize robot angles
-
-        self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
-
-        self.progress_buf[env_ids] = 0
 
     def compute_reward(self):
         # retrieve environment observations from buffer
