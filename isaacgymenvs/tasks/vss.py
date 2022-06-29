@@ -11,9 +11,9 @@ class VSS(VecTask):
     def __init__(self, cfg, sim_device, graphics_device_id, headless):
         self.cfg = cfg
 
-        self.max_episode_length = 20
+        self.max_episode_length = 200
 
-        self.cfg["env"]["numObservations"] = 9
+        self.cfg["env"]["numObservations"] = 15
         self.cfg["env"]["numActions"] = 2
 
         super().__init__(config=self.cfg, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless)
@@ -39,12 +39,12 @@ class VSS(VecTask):
         self.compute_observations()
 
     def reset_idx(self, env_ids):
-        rand_pos = (torch.rand((len(env_ids), 2, 2), dtype=torch.float, device=self.device) - 0.5) * self.field_scale * 0
-
+        rand_pos = (torch.rand((len(env_ids), 2, 2), dtype=torch.float, device=self.device) - 0.5) * self.field_scale
+    
         self.ball_root_state[env_ids, :2] = rand_pos[env_ids, 0]
         self.ball_root_state[env_ids, 2] = self.ball_initial_height
         self.ball_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
-        self.robot_root_state[env_ids, :2] = rand_pos[env_ids, 0]
+        self.robot_root_state[env_ids, :2] = rand_pos[env_ids, 1]
         self.robot_root_state[env_ids, 2] = self.robot_initial_height
         self.robot_root_state[env_ids, 3:] = torch.tensor([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         # TODO: randomize robot angles
@@ -63,6 +63,8 @@ class VSS(VecTask):
         plane_params = gymapi.PlaneParams()
         # set the normal force to be z dimension
         plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0)
+        plane_params.static_friction = 0.0
+        plane_params.dynamic_friction = 0.0
         self.gym.add_ground(self.sim, plane_params)
     #    - set up environments
         lower = gymapi.Vec3(-1, -1, 0.0)
@@ -79,6 +81,9 @@ class VSS(VecTask):
         asset_robot_file = "vss_robot.urdf"
         asset_options = gymapi.AssetOptions()
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_robot_file, asset_options)
+        robot_asset_rigid_shape_properties = self.gym.get_asset_rigid_shape_properties(robot_asset)
+        robot_asset_rigid_shape_properties[0].friction = 0.0
+        self.gym.set_asset_rigid_shape_properties(robot_asset, robot_asset_rigid_shape_properties)
 
         # Load ball urdf
         asset_ball_file = "vss_ball.urdf"
@@ -107,6 +112,7 @@ class VSS(VecTask):
             self.robot_handles.append(robot_handle)
             self.ball_handles.append(ball_handle)
             self.field_handles.append(field_handle)
+
         self.n_env_rigid_bodies = self.gym.get_env_rigid_body_count(env_ptr)
 
     def pre_physics_step(self, actions):
@@ -114,25 +120,27 @@ class VSS(VecTask):
         #    - e.g. apply actions
         actions.to(self.device)
         force_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
-        torque_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
+        # torque_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
+        pos_tensor = torch.ones((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float) * torch.tensor([0.0, 0.0, -0.05], dtype=torch.float, device=self.device, requires_grad=False)
         # import pdb; pdb.set_trace()
-        force_tensor[:, -1, 1] = actions[:, 0]
-        torque_tensor[:, -1, 2] = actions[:, 1]
+        force_tensor[:, -1, :2] = actions[:]
+        # torque_tensor[:, -1, 2] = actions[:, 1]
         forces = gymtorch.unwrap_tensor(force_tensor)
-        torques = gymtorch.unwrap_tensor(torque_tensor)
+        # torques = gymtorch.unwrap_tensor(torque_tensor)
+        pos = gymtorch.unwrap_tensor(pos_tensor)
         # apply only forces
-        self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
+        # self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
+        self.gym.apply_rigid_body_force_at_pos_tensors(self.sim, forces, pos, gymapi.LOCAL_SPACE)
 
 
     def compute_reward(self):
         # retrieve environment observations from buffer
-        self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2])
+        self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :3], self.ball_root_state[:, :3])
 
     def compute_observations(self):
         # Actors ids 0: field, 1: ball, 2: robot
-        self.obs_buf[:, :3] = self.robot_root_state[:, :3]  # robot x, y and z
-        self.obs_buf[:, 3:7] = self.robot_root_state[:, 3:7]    # robot_quat
-        self.obs_buf[:, 7:9] = self.ball_root_state[:, :2] # ball x, y
+        self.obs_buf[:, :13] = self.robot_root_state[:]
+        self.obs_buf[:, -2:] = self.ball_root_state[:, :2] # ball x, y
 
     def post_physics_step(self):
         self.progress_buf += 1
