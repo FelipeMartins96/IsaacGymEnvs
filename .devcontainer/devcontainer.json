@@ -13,7 +13,12 @@
 	"settings": {},
 	
 	// Add the IDs of extensions you want installed when the container is created.
-	"extensions": [],
+	"extensions": [
+		"ms-python.python",
+		"GitHub.copilot",
+		"smilerobotics.urdf",
+		"redhat.vscode-xml"
+	],
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	// "forwardPorts": [],

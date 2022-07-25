@@ -47,6 +47,8 @@ from .shadow_hand import ShadowHand
 from .allegro_hand import AllegroHand
 from .trifinger import Trifinger
 
+from .rsoccer.vss_v0 import VSS_V0
+
 # Mappings from strings to environments
 isaacgym_task_map = {
     "AllegroHand": AllegroHand,
@@ -68,4 +70,5 @@ isaacgym_task_map = {
     "Quadcopter": Quadcopter,
     "ShadowHand": ShadowHand,
     "Trifinger": Trifinger,
+    "VSS_V0": VSS_V0,
 }
