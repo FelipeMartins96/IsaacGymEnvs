@@ -51,7 +51,6 @@ class VSS_V0(VecTask):
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
-        self.progress_buf[env_ids] = 0
 
     def create_sim(self):
     #    - set up-axis
@@ -116,6 +115,10 @@ class VSS_V0(VecTask):
         self.n_env_rigid_bodies = self.gym.get_env_rigid_body_count(env_ptr)
 
     def pre_physics_step(self, actions):
+        # reset progress_buf for envs reseted on previous step
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        self.progress_buf[env_ids] = 0
+
         # implement pre-physics simulation code here
         #    - e.g. apply actions
         actions.to(self.device)
@@ -152,10 +155,10 @@ class VSS_V0(VecTask):
         self.compute_reward()
 
         # Reset dones (Reseting only on timeouts)
-        self.reset_buf = (self.progress_buf >= self.max_episode_length - 1)
-        # env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
-        # if len(env_ids) > 0:
-        #     self.reset_idx(env_ids)
+        self.reset_buf = (self.progress_buf >= self.max_episode_length)
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids) > 0:
+            self.reset_idx(env_ids)
 
         self.compute_observations()
 
