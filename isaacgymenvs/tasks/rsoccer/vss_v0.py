@@ -53,14 +53,16 @@ class VSS_V0(VecTask):
     def reset_idx(self, env_ids):
         rand_pos = (torch.rand((len(env_ids), 2, 2), dtype=torch.float, device=self.device) - 0.5) * self.field_scale
 
-        pos = [-0.5, 0.0, 0.052] # x, y, z
+        pos_robot = [0.5, -0.3, 0.052] # x, y, z
+        pos_ball = [-0.5, 0.3, 0.02134/2] # x, y, z
         rotation = [0.0, 0.0, 0.0, 1.0] # x, y, z, w
         lin_velocity = [0.0, 0.0, 0.0] # vx, vy, vz
         ang_velocity = [0.0, 0.0, 0.0] # wx, wy, wz
-        reset_root_state = torch.tensor(pos+rotation+lin_velocity+ang_velocity, dtype=torch.float, device=self.device, requires_grad=False)
+        rbt_reset_root_state = torch.tensor(pos_robot+rotation+lin_velocity+ang_velocity, dtype=torch.float, device=self.device, requires_grad=False)
+        ball_reset_root_state = torch.tensor(pos_ball+rotation+lin_velocity+ang_velocity, dtype=torch.float, device=self.device, requires_grad=False)
 
-        self.ball_root_state[env_ids] = reset_root_state
-        self.robot_root_state[env_ids] = reset_root_state
+        self.ball_root_state[env_ids] = rbt_reset_root_state
+        self.robot_root_state[env_ids] = ball_reset_root_state
         # TODO: randomize robot angles
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
@@ -147,7 +149,7 @@ class VSS_V0(VecTask):
         forces_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
         torques_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
         wheel_forces = forces_tensor[:, -2:, :1].view((self.num_envs, 2))
-        wheel_forces[:] = actions[:]
+        wheel_forces[:] = actions[:] / 2
         forces = gymtorch.unwrap_tensor(forces_tensor)
         torques = gymtorch.unwrap_tensor(torques_tensor)
         self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)

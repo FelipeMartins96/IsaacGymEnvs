@@ -1,0 +1,29 @@
+experiment: 'batch size'
+seed: 42
+torch_deterministic: False
+max_iterations: ''
+pipeline: 'gpu'
+sim_device: 'cuda:0'
+rl_device: 'cuda:0'
+graphics_device_id: 0
+headless: False
+force_render: False
+virtual_screen_capture: False
+
+task:
+  name: VSS_V0
+  physics_engine: 'physx'
+  env:
+    numEnvs: 64
+    clipActions: 1
+  sim:
+    use_gpu_pipeline: ${eq:${...pipeline},"gpu"}
+
+agent:
+  lr: 3e-4
+  learning_starts: 25e3
+  total_timesteps: 1000000
+  exploration_noise: 0.4
+  batch_size: 64
+  gamma: 0.99
+  tau: 0.005
