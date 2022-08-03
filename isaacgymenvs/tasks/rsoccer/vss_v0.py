@@ -5,11 +5,12 @@ from isaacgym import gymapi
 import numpy as np
 import torch
 
-from tasks.base.vec_task import VecTask
+from isaacgymenvs.tasks.base.vec_task import VecTask
 
 class VSS_V0(VecTask):
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
         self.cfg = cfg
+        self.render_mode = 'rgb_array'
 
         self.max_episode_length = 1200
 
@@ -25,7 +26,7 @@ class VSS_V0(VecTask):
         self.cfg['sim']['physx']['friction_correlation_distance'] = 0.001
         self.cfg['sim']['physx']['friction_offset_threshold'] = 0.01
         self.cfg['sim']['physx']['max_depenetration_velocity'] = 10
-        self.cfg['sim']['physx']['bounce_threshold_velocity'] = 0.0
+        self.cfg['sim']['physx']['bounce_threshold_velocity'] = 0.04
 
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
@@ -124,7 +125,7 @@ class VSS_V0(VecTask):
             ball_handle = self.gym.create_actor(env_ptr, ball_asset, gymapi.Transform(), 'ball', group=i, filter=0)
             
             # add robot
-            robot_handle = self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(), 'robot', group=i, filter=0)
+            robot_handle = self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(gymapi.Vec3(0.0, 0.0, 0.1), r=None), 'robot', group=i, filter=0)
 
             self.envs.append(env_ptr)
             self.robot_handles.append(robot_handle)
