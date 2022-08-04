@@ -153,10 +153,12 @@ class Cartpole(VecTask):
                                               gymtorch.unwrap_tensor(self.dof_state),
                                               gymtorch.unwrap_tensor(env_ids_int32), len(env_ids_int32))
 
-        self.reset_buf[env_ids] = 0
+        # self.reset_buf[env_ids] = 0
         self.progress_buf[env_ids] = 0
 
     def pre_physics_step(self, actions):
+        self.reset_buf[:] = 0
+
         actions_tensor = torch.zeros(self.num_envs * self.num_dof, device=self.device, dtype=torch.float)
         actions_tensor[::self.num_dof] = actions.to(self.device).squeeze() * self.max_push_effort
         forces = gymtorch.unwrap_tensor(actions_tensor)
@@ -165,12 +167,15 @@ class Cartpole(VecTask):
     def post_physics_step(self):
         self.progress_buf += 1
 
+        self.compute_observations()
+        self.compute_reward()
+
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
             self.reset_idx(env_ids)
-
+        
         self.compute_observations()
-        self.compute_reward()
+
 
 #####################################################################
 ###=========================jit functions=========================###
@@ -191,6 +196,6 @@ def compute_cartpole_reward(pole_angle, pole_vel, cart_vel, cart_pos,
 
     reset = torch.where(torch.abs(cart_pos) > reset_dist, torch.ones_like(reset_buf), reset_buf)
     reset = torch.where(torch.abs(pole_angle) > np.pi / 2, torch.ones_like(reset_buf), reset)
-    reset = torch.where(progress_buf >= max_episode_length - 1, torch.ones_like(reset_buf), reset)
+    reset = torch.where(progress_buf > max_episode_length - 1, torch.ones_like(reset_buf), reset)
 
     return reward, reset
