@@ -148,11 +148,16 @@ class VSS_V0(VecTask):
 
         forces_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
         torques_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
-        wheel_forces = forces_tensor[:, -2:, :1].view((self.num_envs, 2))
-        wheel_forces[:] = actions[:] / 2
+        
+        # wheel_forces = forces_tensor[:, -2:, :1].view((self.num_envs, 2))
+        # wheel_forces[:] = actions[:] / 2
+
+        forces_tensor[:, -3, :2] = actions[:]
+
         forces = gymtorch.unwrap_tensor(forces_tensor)
         torques = gymtorch.unwrap_tensor(torques_tensor)
-        self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
+        self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.GLOBAL_SPACE)
+
 
 
     def compute_reward(self):
