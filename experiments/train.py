@@ -57,7 +57,7 @@ def train(cfg : DictConfig) -> None:
             force_render=True,
         )
 
-    writer = SummaryWriter(f"runs/{cfg.experiment}")
+    writer = SummaryWriter()
 
 
     actor = Actor(envs).to(device=cfg.rl_device)
@@ -84,8 +84,12 @@ def train(cfg : DictConfig) -> None:
                 actions = actor(obs['obs'])
                 actions += torch.normal(actor.action_bias, actor.action_scale * cfg.agent.exploration_noise)
 
+        actions = torch.clamp(actions, -1.0, 1.0)
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, dones, infos = envs.step(actions)
+
+        writer.add_scalar("charts/mean_action_fx", actions[:,0].mean().item(), global_step)
+        writer.add_scalar("charts/mean_action_fy", actions[:,1].mean().item(), global_step)
 
         # # TRY NOT TO MODIFY: record rewards for plotting purposes
         episodic_return += rewards
@@ -100,11 +104,11 @@ def train(cfg : DictConfig) -> None:
         # TRY NOT TO MODIFY: save data to replay buffer;
         rb.store(
             {
-            'observations': obs['obs'][dones != True], 
-            'next_observations': next_obs['obs'][dones != True],
-            'actions': actions[dones != True],
-            'rewards': rewards[dones != True],
-            'dones': dones[dones != True],
+            'observations': obs['obs'], 
+            'next_observations': next_obs['obs'],
+            'actions': actions,
+            'rewards': rewards,
+            'dones': dones,
             }
         )
 
