@@ -35,15 +35,12 @@ class Actor(nn.Module):
         self.fc1 = nn.Linear(np.array(env.observation_space.shape).prod(), 256)
         self.fc2 = nn.Linear(256, 256)
         self.fc_mu = nn.Linear(256, np.prod(env.action_space.shape))
-        # action rescaling
-        self.register_buffer("action_scale", torch.FloatTensor((env.action_space.high - env.action_space.low) / 2.0))
-        self.register_buffer("action_bias", torch.FloatTensor((env.action_space.high + env.action_space.low) / 2.0))
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = torch.tanh(self.fc_mu(x))
-        return x * self.action_scale + self.action_bias
+        return x
 
 @hydra.main(version_base=None, config_path=".", config_name="config")
 def train(cfg : DictConfig) -> None:
@@ -82,7 +79,7 @@ def train(cfg : DictConfig) -> None:
         else:
             with torch.no_grad():
                 actions = actor(obs['obs'])
-                actions += torch.normal(actor.action_bias, actor.action_scale * cfg.agent.exploration_noise)
+                actions += torch.normal(torch.zeros_like(actions, dtype=torch.float32, device=cfg.rl_device), 1.0 * cfg.agent.exploration_noise)
 
         actions = torch.clamp(actions, -1.0, 1.0)
         # TRY NOT TO MODIFY: execute the game and log data.
