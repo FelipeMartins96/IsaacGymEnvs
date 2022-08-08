@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
 import time
+from copy import deepcopy
 
 from torch.utils.tensorboard import SummaryWriter
 from isaacgymenvs.tasks import isaacgym_task_map
@@ -71,7 +72,7 @@ def train(cfg : DictConfig) -> None:
     episodic_return = torch.zeros(envs.num_envs, device=cfg.rl_device)
     episodic_length = torch.zeros(envs.num_envs, device=cfg.rl_device)
     # TRY NOT TO MODIFY: start the game
-    obs = envs.reset()
+    obs = deepcopy(envs.reset())
     for global_step in range(cfg.agent.total_timesteps):
         # ALGO LOGIC: put action logic here
         if rb.get_total_count() < cfg.agent.learning_starts:
@@ -89,7 +90,7 @@ def train(cfg : DictConfig) -> None:
         writer.add_scalar("charts/mean_action_fy", actions[:,1].mean().item(), global_step)
 
         # # TRY NOT TO MODIFY: record rewards for plotting purposes
-        real_next_obs = next_obs.copy()
+        real_next_obs = next_obs['obs'].clone()
         episodic_return += rewards
         episodic_length += 1
         if dones.any():
@@ -104,7 +105,7 @@ def train(cfg : DictConfig) -> None:
         rb.store(
             {
             'observations': obs['obs'], 
-            'next_observations': real_next_obs['obs'],
+            'next_observations': real_next_obs,
             'actions': actions,
             'rewards': rewards,
             'dones': dones,
@@ -112,7 +113,7 @@ def train(cfg : DictConfig) -> None:
         )
 
         # TRY NOT TO MODIFY: CRUCIAL step easy to overlook
-        obs = next_obs
+        obs = deepcopy(next_obs)
 
         # ALGO LOGIC: training.
         if rb.get_total_count() > cfg.agent.learning_starts:
