@@ -92,6 +92,7 @@ def train(cfg : DictConfig) -> None:
         writer.add_scalar("charts/mean_action_fy", actions[:,1].mean().item(), global_step)
 
         # # TRY NOT TO MODIFY: record rewards for plotting purposes
+        real_next_obs = next_obs.copy()
         episodic_return += rewards
         episodic_length += 1
         if dones.any():
@@ -99,13 +100,14 @@ def train(cfg : DictConfig) -> None:
             writer.add_scalar("charts/episodic_length", episodic_length[dones].mean(), global_step)
             episodic_return[dones] = 0
             episodic_length[dones] = 0
-
+            real_next_obs[dones] = infos["terminal_observation"][dones]
+            dones = dones.logical_and(infos["time_outs"].logical_not())
 
         # TRY NOT TO MODIFY: save data to replay buffer;
         rb.store(
             {
             'observations': obs['obs'], 
-            'next_observations': next_obs['obs'],
+            'next_observations': real_next_obs['obs'],
             'actions': actions,
             'rewards': rewards,
             'dones': dones,

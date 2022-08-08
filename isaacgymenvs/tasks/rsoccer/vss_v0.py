@@ -164,10 +164,11 @@ class VSS_V0(VecTask):
         # retrieve environment observations from buffer
         self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :3], self.ball_root_state[:, :3])
 
-    def compute_observations(self):
+    def compute_observations(self, env_ids=None):
         # Actors ids 0: field, 1: ball, 2: robot
-        self.obs_buf[:, :13] = self.robot_root_state[:]
-        self.obs_buf[:, -2:] = self.ball_root_state[:, :2] # ball x, y
+        env_ids = np.arange(self.num_envs) if env_ids is None else env_ids
+        self.obs_buf[env_ids, :13] = self.robot_root_state[env_ids]
+        self.obs_buf[env_ids, -2:] = self.ball_root_state[env_ids, :2] # ball x, y
 
     def post_physics_step(self):
         self.progress_buf += 1
@@ -178,13 +179,17 @@ class VSS_V0(VecTask):
         # Calculate rewards
         self.compute_reward()
 
+        # Save observations previously to resets
+        self.compute_observations()
+        self.extras["terminal_observation"] = self.obs_buf.clone().to(self.rl_device)
+
         # Reset dones (Reseting only on timeouts)
         self.reset_buf = (self.progress_buf >= self.max_episode_length)
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
             self.reset_idx(env_ids)
+            self.compute_observations(env_ids)
 
-        self.compute_observations()
 
 #####################################################################
 ###=========================jit functions=========================###
