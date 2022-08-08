@@ -12,9 +12,9 @@ class VSS_V0(VecTask):
         self.cfg = cfg
         self.render_mode = 'rgb_array'
 
-        self.max_episode_length = 1200
+        self.max_episode_length = 300
 
-        self.cfg["env"]["numObservations"] = 15
+        self.cfg["env"]["numObservations"] = 9
         self.cfg["env"]["numActions"] = 2
         self.cfg['sim']['up_axis'] = 'z'
         self.cfg['sim']['dt'] =0.016667
@@ -158,25 +158,25 @@ class VSS_V0(VecTask):
         torques = gymtorch.unwrap_tensor(torques_tensor)
         self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.GLOBAL_SPACE)
 
-
-
     def compute_reward(self):
-        # retrieve environment observations from buffer
-        self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :3], self.ball_root_state[:, :3])
+        # Calculate previous robot distance to ball
+        self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2])
+        # Refresh state tensors
+        self.gym.refresh_actor_root_state_tensor(self.sim)
+        # Diference between last robot distance to ball and current
+        self.rew_buf[:] -= compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2])
 
     def compute_observations(self, env_ids=None):
         # Actors ids 0: field, 1: ball, 2: robot
         env_ids = np.arange(self.num_envs) if env_ids is None else env_ids
-        self.obs_buf[env_ids, :13] = self.robot_root_state[env_ids]
-        self.obs_buf[env_ids, -2:] = self.ball_root_state[env_ids, :2] # ball x, y
+        self.obs_buf[env_ids, :3] = self.robot_root_state[env_ids, :3]
+        self.obs_buf[env_ids, 3:6] = self.robot_root_state[env_ids, 7:10]
+        self.obs_buf[env_ids, -3:] = self.ball_root_state[env_ids, :3] # ball x, y
 
     def post_physics_step(self):
         self.progress_buf += 1
 
-        # Refresh state tensors 
-        self.gym.refresh_actor_root_state_tensor(self.sim)
-
-        # Calculate rewards
+        # Calculate rewards (Refreshes state tensors)
         self.compute_reward()
 
         # Save observations previously to resets
@@ -200,4 +200,4 @@ class VSS_V0(VecTask):
 def compute_vss_reward(robot_pos, ball_pos):
     # type: (Tensor, Tensor) -> Tensor
     
-    return -torch.linalg.norm(robot_pos-ball_pos, dim=1)
+    return torch.linalg.norm(robot_pos-ball_pos, dim=1)
