@@ -1,4 +1,10 @@
 <robot name="vss_robot">
+    <material name="Red">
+        <color rgba="1.0 0.0 0.0 1.0" />
+    </material>
+    <material name="Blue">
+        <color rgba="0.0 0.0 1.0 1.0" />
+    </material>
     <link name="robot_body">
         <visual>
             <geometry>
@@ -15,8 +21,24 @@
         </inertial>
         
     </link>
-    <link name="left_wheel">\</link>
-    <link name="right_wheel">\</link>
+    <link name="left_wheel">
+        <visual>
+            <origin xyz="0.0 0.0 0.0" rpy="1.57 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="0.026" length="0.0025"/>
+            </geometry>
+            <material name="Red" />
+        </visual>
+    </link>
+    <link name="right_wheel">
+        <visual>
+            <origin xyz="0.0 0.0 0.0" rpy="-1.57 0.0 0.0"/>
+            <geometry>
+                <cylinder radius="0.026" length="0.0025"/>
+            </geometry>
+            <material name="Blue" />
+        </visual>
+    </link>
 
     <joint name="left_wheel_joint" type="fixed">
         <origin xyz="0.0 0.04 -0.004" />
