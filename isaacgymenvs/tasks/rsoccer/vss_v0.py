@@ -46,7 +46,7 @@ class VSS_V0(VecTask):
 
         # [pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, rot_w, vel_x, vel_y, vel_z, w_x, w_y, w_z]
         self.robot_initial = torch.tensor([0.0, 0.0, 0.0052, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
-        self.ball_initial = torch.tensor([0.0, 0.0, 0.0052, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.ball_initial = torch.tensor([0.0, 0.0, 0.02134, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.z_axis = torch.tensor([0.0, 0.0, 1.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.field_scale = torch.tensor([1.4, 1.2], dtype=torch.float, device=self.device, requires_grad=False)
         
@@ -64,9 +64,8 @@ class VSS_V0(VecTask):
         self.robot_root_state[env_ids, :2] = rand_pos[:, 1]
 
         #randomize rotations
-        rand_angles = torch_rand_float(-np.pi, np.pi, (len(env_ids), 2), device=self.device)
-        self.ball_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 0], self.z_axis)
-        self.robot_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 1], self.z_axis)
+        rand_angles = torch_rand_float(-np.pi, np.pi, (len(env_ids), 1), device=self.device)
+        self.robot_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 0], self.z_axis)
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
