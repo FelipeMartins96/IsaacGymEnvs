@@ -4,6 +4,7 @@ from isaacgym import gymtorch
 from isaacgym import gymapi
 import numpy as np
 import torch
+from isaacgym.torch_utils import torch_rand_float, quat_from_angle_axis
 
 from isaacgymenvs.tasks.base.vec_task import VecTask
 
@@ -43,27 +44,29 @@ class VSS_V0(VecTask):
         self.ball_root_state = self.root_state[:, 1]
         self.robot_root_state = self.root_state[:, 2]
 
+        # [pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, rot_w, vel_x, vel_y, vel_z, w_x, w_y, w_z]
+        self.robot_initial = torch.tensor([0.0, 0.0, 0.0052, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.ball_initial = torch.tensor([0.0, 0.0, 0.0052, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.z_axis = torch.tensor([0.0, 0.0, 1.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.field_scale = torch.tensor([1.4, 1.2], dtype=torch.float, device=self.device, requires_grad=False)
-        self.ball_initial_height = 0.0
-        self.robot_initial_height = 0.052
-
+        
         self.reset_idx(np.arange(self.num_envs))
         self.compute_observations()
 
     def reset_idx(self, env_ids):
+
+        self.ball_root_state[env_ids] = self.ball_initial
+        self.robot_root_state[env_ids] = self.robot_initial
+
+        #randomize positions
         rand_pos = (torch.rand((len(env_ids), 2, 2), dtype=torch.float, device=self.device) - 0.5) * self.field_scale
+        self.ball_root_state[env_ids, :2] = rand_pos[:, 0]
+        self.robot_root_state[env_ids, :2] = rand_pos[:, 1]
 
-        pos_robot = [0.5, -0.3, 0.052] # x, y, z
-        pos_ball = [-0.5, 0.3, 0.02134/2] # x, y, z
-        rotation = [0.0, 0.0, 0.0, 1.0] # x, y, z, w
-        lin_velocity = [0.0, 0.0, 0.0] # vx, vy, vz
-        ang_velocity = [0.0, 0.0, 0.0] # wx, wy, wz
-        rbt_reset_root_state = torch.tensor(pos_robot+rotation+lin_velocity+ang_velocity, dtype=torch.float, device=self.device, requires_grad=False)
-        ball_reset_root_state = torch.tensor(pos_ball+rotation+lin_velocity+ang_velocity, dtype=torch.float, device=self.device, requires_grad=False)
-
-        self.ball_root_state[env_ids] = rbt_reset_root_state
-        self.robot_root_state[env_ids] = ball_reset_root_state
-        # TODO: randomize robot angles
+        #randomize rotations
+        rand_angles = torch_rand_float(-np.pi, np.pi, (len(env_ids), 2), device=self.device)
+        self.ball_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 0], self.z_axis)
+        self.robot_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 1], self.z_axis)
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
@@ -116,7 +119,6 @@ class VSS_V0(VecTask):
         self.ball_handles = []
         self.field_handles = []
         self.envs = []
-        ball_radius = 21.34 * 1/1000.0
         for i in range(self.num_envs):
             # Create environment
             env_ptr = self.gym.create_env(self.sim, lower, upper, int(np.sqrt(self.num_envs)))
