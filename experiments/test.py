@@ -30,7 +30,8 @@ def train(cfg : DictConfig) -> None:
     writer = SummaryWriter()
 
     while True:
-        envs.step(torch.tensor(envs.action_space.sample(), device=cfg.rl_device))
+        actions = (2 * torch.rand((cfg.task.env.numEnvs,)+envs.action_space.shape, device=cfg.rl_device)) - 1
+        envs.step(actions)
 
 
 if __name__ == "__main__":

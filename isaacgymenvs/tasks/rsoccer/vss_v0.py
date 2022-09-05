@@ -15,7 +15,7 @@ class VSS_V0(VecTask):
 
         self.max_episode_length = 300
 
-        self.cfg["env"]["numObservations"] = 9
+        self.cfg["env"]["numObservations"] = 13
         self.cfg["env"]["numActions"] = 2
         self.cfg['sim']['up_axis'] = 'z'
         self.cfg['sim']['dt'] =0.016667
@@ -170,8 +170,7 @@ class VSS_V0(VecTask):
     def compute_observations(self, env_ids=None):
         # Actors ids 0: field, 1: ball, 2: robot
         env_ids = np.arange(self.num_envs) if env_ids is None else env_ids
-        self.obs_buf[env_ids, :3] = self.robot_root_state[env_ids, :3]
-        self.obs_buf[env_ids, 3:6] = self.robot_root_state[env_ids, 7:10]
+        self.obs_buf[env_ids, :10] = self.robot_root_state[env_ids, :10]
         self.obs_buf[env_ids, -3:] = self.ball_root_state[env_ids, :3] # ball x, y
 
     def post_physics_step(self):
