@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot name="ball">
-    <material name="Red">
-        <color rgba="1.0 0.0 0.0 1.0" />
+    <material name="Orange">
+        <color rgba="1.0 0.4 0.0 1.0" />
     </material>
     <link name="ball">
         <visual>
@@ -9,7 +9,7 @@
             <geometry>
                 <sphere radius="0.02134" />
             </geometry>
-            <material name="Red" />
+            <material name="Orange" />
         </visual>
     </link>
 </robot>
