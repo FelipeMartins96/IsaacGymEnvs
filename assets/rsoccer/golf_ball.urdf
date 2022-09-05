@@ -11,5 +11,10 @@
             </geometry>
             <material name="Orange" />
         </visual>
+        <collision>
+            <geometry>
+                <sphere radius="0.02134" />
+            </geometry>
+        </collision>
     </link>
 </robot>

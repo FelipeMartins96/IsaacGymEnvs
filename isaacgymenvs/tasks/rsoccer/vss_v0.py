@@ -49,6 +49,8 @@ class VSS_V0(VecTask):
         self.ball_initial = torch.tensor([0.0, 0.0, 0.02134, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.z_axis = torch.tensor([0.0, 0.0, 1.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.field_scale = torch.tensor([1.4, 1.2], dtype=torch.float, device=self.device, requires_grad=False)
+        self.ally_goal = torch.tensor([-0.75, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.enemy_goal = torch.tensor([0.75, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         
         self.reset_idx(np.arange(self.num_envs))
         self.compute_observations()
@@ -63,9 +65,17 @@ class VSS_V0(VecTask):
         self.ball_root_state[env_ids, :2] = rand_pos[:, 0]
         self.robot_root_state[env_ids, :2] = rand_pos[:, 1]
 
+        # pos_override = torch.zeros_like(rand_pos)
+        # pos_override[:, 0, 0] = 0.5
+        # pos_override[:, 1, 0] = -0.5
+        # rand_pos = pos_override
+
+        self.ball_root_state[env_ids, :2] = rand_pos[:, 0]
+        self.robot_root_state[env_ids, :2] = rand_pos[:, 1]
+
         #randomize rotations
-        rand_angles = torch_rand_float(-np.pi, np.pi, (len(env_ids), 1), device=self.device)
-        self.robot_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 0], self.z_axis)
+        # rand_angles = torch_rand_float(-np.pi, np.pi, (len(env_ids), 1), device=self.device)
+        # self.robot_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 0], self.z_axis)
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
@@ -111,7 +121,7 @@ class VSS_V0(VecTask):
         # Load ball urdf
         asset_ball_file = "golf_ball.urdf"
         asset_options = gymapi.AssetOptions()
-        asset_options.fix_base_link = True
+        # asset_options.fix_base_link = True
         ball_asset = self.gym.load_asset(self.sim, asset_root, asset_ball_file, asset_options)
 
         self.robot_handles = []
@@ -162,11 +172,11 @@ class VSS_V0(VecTask):
 
     def compute_reward(self):
         # Calculate previous robot distance to ball
-        self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2])
+        self.rew_buf[:] = compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2], self.ally_goal, self.enemy_goal)
         # Refresh state tensors
         self.gym.refresh_actor_root_state_tensor(self.sim)
         # Diference between last robot distance to ball and current
-        self.rew_buf[:] -= compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2])
+        self.rew_buf[:] -= compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2], self.ally_goal, self.enemy_goal)
 
     def compute_observations(self, env_ids=None):
         # Actors ids 0: field, 1: ball, 2: robot
@@ -198,7 +208,11 @@ class VSS_V0(VecTask):
 
 
 @torch.jit.script
-def compute_vss_reward(robot_pos, ball_pos):
-    # type: (Tensor, Tensor) -> Tensor
+def compute_vss_reward(robot_pos, ball_pos, ally_goal, enemy_goal):
+    # type: (Tensor, Tensor, Tensor, Tensor) -> Tensor
     
-    return torch.linalg.norm(robot_pos-ball_pos, dim=1)
+    dist_robot_ball = torch.norm(robot_pos - ball_pos, dim=1)
+    dist_ball_ally_goal = torch.norm(ball_pos - ally_goal, dim=1)
+    dist_ball_enemy_goal = torch.norm(ball_pos - enemy_goal, dim=1)
+
+    return dist_robot_ball - dist_ball_ally_goal + dist_ball_enemy_goal
