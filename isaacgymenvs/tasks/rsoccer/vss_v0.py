@@ -178,6 +178,9 @@ class VSS_V0(VecTask):
         # Diference between last robot distance to ball and current
         self.rew_buf[:] -= compute_vss_reward(self.robot_root_state[:, :2], self.ball_root_state[:, :2], self.ally_goal, self.enemy_goal)
 
+        self.reset_buf = (self.progress_buf >= self.max_episode_length)
+        self.reset_buf = torch.where(torch.abs(self.ball_root_state[:, 0]) > 0.75, torch.ones_like(self.reset_buf), self.reset_buf)
+
     def compute_observations(self, env_ids=None):
         # Actors ids 0: field, 1: ball, 2: robot
         env_ids = np.arange(self.num_envs) if env_ids is None else env_ids
@@ -195,7 +198,6 @@ class VSS_V0(VecTask):
         self.extras["terminal_observation"] = self.obs_buf.clone().to(self.rl_device)
 
         # Reset dones (Reseting only on timeouts)
-        self.reset_buf = (self.progress_buf >= self.max_episode_length)
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         if len(env_ids) > 0:
             self.reset_idx(env_ids)
