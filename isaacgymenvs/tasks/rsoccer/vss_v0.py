@@ -153,11 +153,12 @@ class VSS_V0(VecTask):
         # wheel_forces = forces_tensor[:, -2:, :1].view((self.num_envs, 2))
         # wheel_forces[:] = actions[:] / 2
 
-        forces_tensor[:, -3, :2] = actions[:]
+        forces_tensor[:, -2, 0] = actions[:, 0]
+        forces_tensor[:, -1, 0] = actions[:, 1]
 
         forces = gymtorch.unwrap_tensor(forces_tensor)
         torques = gymtorch.unwrap_tensor(torques_tensor)
-        self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.GLOBAL_SPACE)
+        self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
 
     def compute_reward(self):
         # Calculate previous robot distance to ball
