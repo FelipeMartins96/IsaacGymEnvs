@@ -11,7 +11,7 @@ force_render: False
 virtual_screen_capture: False
 
 task:
-  name: VSS_V0
+  name: VSS_V1
   physics_engine: 'physx'
   env:
     numEnvs: 64
