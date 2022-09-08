@@ -15,7 +15,7 @@ class VSS_V0(VecTask):
 
         self.max_episode_length = 300
 
-        self.cfg["env"]["numObservations"] = 13
+        self.cfg["env"]["numObservations"] = 15
         self.cfg["env"]["numActions"] = 2
         self.cfg['sim']['up_axis'] = 'z'
         self.cfg['sim']['dt'] =0.016667
@@ -74,8 +74,8 @@ class VSS_V0(VecTask):
         self.robot_root_state[env_ids, :2] = rand_pos[:, 1]
 
         #randomize rotations
-        # rand_angles = torch_rand_float(-np.pi, np.pi, (len(env_ids), 1), device=self.device)
-        # self.robot_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 0], self.z_axis)
+        rand_angles = torch_rand_float(-np.pi, np.pi, (len(env_ids), 1), device=self.device)
+        self.robot_root_state[env_ids, 3:7] = quat_from_angle_axis(rand_angles[:, 0], self.z_axis)
 
         self.gym.set_actor_root_state_tensor(self.sim, gymtorch.unwrap_tensor(self.root_state))
 
@@ -185,7 +185,8 @@ class VSS_V0(VecTask):
         # Actors ids 0: field, 1: ball, 2: robot
         env_ids = np.arange(self.num_envs) if env_ids is None else env_ids
         self.obs_buf[env_ids, :10] = self.robot_root_state[env_ids, :10]
-        self.obs_buf[env_ids, -3:] = self.ball_root_state[env_ids, :3] # ball x, y
+        self.obs_buf[env_ids, -5:-2] = self.ball_root_state[env_ids, :3] # ball x, y
+        self.obs_buf[env_ids, -2:] = self.ball_root_state[env_ids, 7:9] # ball vx, vy
 
     def post_physics_step(self):
         self.progress_buf += 1
