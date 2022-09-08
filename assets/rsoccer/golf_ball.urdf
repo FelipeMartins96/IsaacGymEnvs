@@ -16,5 +16,8 @@
                 <sphere radius="0.02134" />
             </geometry>
         </collision>
+        <inertial>
+            <mass value="0.04593" />
+        </inertial>
     </link>
 </robot>

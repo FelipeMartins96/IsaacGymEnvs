@@ -1,0 +1,73 @@
+<robot name="vss_robot">
+    <material name="Red">
+        <color rgba="1.0 0.0 0.0 1.0" />
+    </material>
+    <material name="Blue">
+        <color rgba="0.0 0.0 1.0 1.0" />
+    </material>
+    <link name="robot_body">
+        <visual>
+            <geometry>
+                <box size="0.07 0.08 0.054" />
+            </geometry>
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.07 0.08 0.054" />
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.150"/>
+        </inertial>
+        
+    </link>
+    <link name="left_wheel">
+        <visual>
+            <geometry>
+                <cylinder radius="0.026" length="0.0025"/>
+            </geometry>
+            <material name="Red" />
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="0.026" length="0.0025"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.015"/>
+        </inertial>
+    </link>
+    <link name="right_wheel">
+        <visual>
+            <geometry>
+                <cylinder radius="0.026" length="0.0025"/>
+            </geometry>
+            <material name="Blue" />
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="0.026" length="0.0025"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="0.015"/>
+        </inertial>
+    </link>
+
+    <joint name="left_wheel_joint" type="continuous">
+        <origin xyz="0.0 0.03875 -0.002" rpy="-1.57 0.0 0.0" />
+        <axis xyz="0.0 0.0 1.0"/>
+        <parent link="robot_body" />
+        <child link="left_wheel" />
+        <limit effort="0.075" velocity="68.0"/>
+    </joint>
+
+    <joint name="right_wheel_joint" type="continuous">
+        <origin xyz="0.0 -0.03875 -0.002" rpy="-1.57 0.0 0.0"/>
+        <axis xyz="0.0 0.0 1.0"/>
+        <parent link="robot_body" />
+        <child link="right_wheel" />
+        <limit effort="0.075" velocity="68.0"/>
+    </joint>
+
+</robot>

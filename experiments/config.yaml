@@ -14,7 +14,7 @@ task:
   name: VSS_V1
   physics_engine: 'physx'
   env:
-    numEnvs: 64
+    numEnvs: 1
     clipActions: 1
   sim:
     use_gpu_pipeline: ${eq:${...pipeline},"gpu"}

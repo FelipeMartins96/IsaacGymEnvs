@@ -45,7 +45,7 @@ class VSS_V1(VecTask):
         self.robot_root_state = self.root_state[:, 2]
 
         # [pos_x, pos_y, pos_z, rot_x, rot_y, rot_z, rot_w, vel_x, vel_y, vel_z, w_x, w_y, w_z]
-        self.robot_initial = torch.tensor([0.0, 0.0, 0.0052, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
+        self.robot_initial = torch.tensor([0.0, 0.0, 0.03, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.ball_initial = torch.tensor([0.0, 0.0, 0.02134, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.z_axis = torch.tensor([0.0, 0.0, 1.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.field_scale = torch.tensor([1.4, 1.2], dtype=torch.float, device=self.device, requires_grad=False)
@@ -77,15 +77,15 @@ class VSS_V1(VecTask):
         field_asset = self.gym.load_asset(self.sim, asset_root, asset_field_file, asset_options)
 
         # Load robot urdf
-        asset_robot_file = "vss_robot.urdf"
+        asset_robot_file = "vss_wheeled.urdf"
         asset_options = gymapi.AssetOptions()
-        asset_options.max_linear_velocity = 1.2
-        asset_options.max_angular_velocity = 30
-        asset_options.linear_damping = 5.0
-        asset_options.angular_damping = 5.0
+        asset_options.slices_per_cylinder = 50
+        asset_options.default_dof_drive_mode = gymapi.DOF_MODE_VEL
+        asset_options.override_com = True
+        asset_options.override_inertia = True
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_robot_file, asset_options)
         robot_asset_rigid_shape_properties = self.gym.get_asset_rigid_shape_properties(robot_asset)
-        robot_asset_rigid_shape_properties[0].friction = 0.1
+        robot_asset_rigid_shape_properties[0].friction = 0.0
         self.gym.set_asset_rigid_shape_properties(robot_asset, robot_asset_rigid_shape_properties)
         
 
@@ -107,7 +107,7 @@ class VSS_V1(VecTask):
             # add ball
             self.gym.create_actor(env_ptr, ball_asset, gymapi.Transform(), 'ball', group=i, filter=0)
             # add robot
-            self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(gymapi.Vec3(0.0, 0.0, 0.1), r=None), 'robot', group=i, filter=0)
+            self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(gymapi.Vec3(0.0, 0.0, 0.1), r=None), 'robot', group=i, filter=1)
 
         self.n_env_rigid_bodies = self.gym.get_env_rigid_body_count(env_ptr)
 
