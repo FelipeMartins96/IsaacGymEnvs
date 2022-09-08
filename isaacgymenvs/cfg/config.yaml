@@ -54,7 +54,7 @@ headless: False
 
 # set default task and default training config based on task
 defaults:
-  - task: VSS_V0
+  - task: VSS_V1
   - train: ${task}PPO
   - hydra/job_logging: disabled
 

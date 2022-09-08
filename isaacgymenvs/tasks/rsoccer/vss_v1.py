@@ -18,15 +18,15 @@ class VSS_V1(VecTask):
         self.cfg["env"]["numObservations"] = 18
         self.cfg["env"]["numActions"] = 2
         self.cfg['sim']['up_axis'] = 'z'
-        self.cfg['sim']['dt'] =0.016667
+        self.cfg['sim']['dt'] =0.04
         self.cfg['sim']['gravity'] = [0.0, 0.0, -10.0]
-        self.cfg['sim']['substeps'] = 10
+        self.cfg['sim']['substeps'] = 5
         self.cfg['sim']['physx'] = {}
-        self.cfg['sim']['physx']['contact_offset'] = 0.05
+        self.cfg['sim']['physx']['contact_offset'] = 0.0005
         self.cfg['sim']['physx']['rest_offset'] = 0.00025
         self.cfg['sim']['physx']['friction_correlation_distance'] = 0.001
         self.cfg['sim']['physx']['friction_offset_threshold'] = 0.01
-        self.cfg['sim']['physx']['max_depenetration_velocity'] = 10
+        self.cfg['sim']['physx']['max_depenetration_velocity'] = 5
         self.cfg['sim']['physx']['bounce_threshold_velocity'] = 0.04
 
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
@@ -51,7 +51,8 @@ class VSS_V1(VecTask):
         self.field_scale = torch.tensor([1.4, 1.2], dtype=torch.float, device=self.device, requires_grad=False)
         self.ally_goal = torch.tensor([-0.75, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
         self.enemy_goal = torch.tensor([0.75, 0.0], dtype=torch.float, device=self.device, requires_grad=False)
-        
+        self.max_wheel_speed = 50
+
         self.reset_idx(np.arange(self.num_envs))
         self.compute_observations()
 
@@ -60,8 +61,9 @@ class VSS_V1(VecTask):
         #    - create ground plane
         plane_params = gymapi.PlaneParams()
         plane_params.normal = gymapi.Vec3(0.0, 0.0, 1.0)
-        plane_params.static_friction = 0.0
-        plane_params.dynamic_friction = 0.0
+        plane_params.static_friction = 0.7
+        plane_params.dynamic_friction = 0.2
+        plane_params.restitution = 0.1
         
         self.gym.add_ground(self.sim, plane_params)
         
@@ -86,12 +88,15 @@ class VSS_V1(VecTask):
         robot_asset = self.gym.load_asset(self.sim, asset_root, asset_robot_file, asset_options)
         robot_asset_rigid_shape_properties = self.gym.get_asset_rigid_shape_properties(robot_asset)
         robot_asset_rigid_shape_properties[0].friction = 0.0
+        robot_asset_rigid_shape_properties[0].restitution = 0.1
         self.gym.set_asset_rigid_shape_properties(robot_asset, robot_asset_rigid_shape_properties)
         
 
         # Load ball urdf
         asset_ball_file = "golf_ball.urdf"
         asset_options = gymapi.AssetOptions()
+        asset_options.override_com = True
+        asset_options.override_inertia = True
         ball_asset = self.gym.load_asset(self.sim, asset_root, asset_ball_file, asset_options)
 
 
@@ -103,13 +108,19 @@ class VSS_V1(VecTask):
             env_ptr = self.gym.create_env(self.sim, lower, upper, int(np.sqrt(self.num_envs)))
             
             # add field
-            self.gym.create_actor(env_ptr, field_asset, gymapi.Transform(), 'field', group=i, filter=0)
+            self.gym.create_actor(env_ptr, field_asset, gymapi.Transform(), 'field', group=i, filter=1)
             # add ball
             self.gym.create_actor(env_ptr, ball_asset, gymapi.Transform(), 'ball', group=i, filter=0)
             # add robot
-            self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(gymapi.Vec3(0.0, 0.0, 0.1), r=None), 'robot', group=i, filter=1)
+            robot_handle = self.gym.create_actor(env_ptr, robot_asset, gymapi.Transform(), 'robot', group=i, filter=2)
+            
+            dof_props = self.gym.get_actor_dof_properties(env_ptr, robot_handle)
+            dof_props['driveMode'][0] = gymapi.DOF_MODE_VEL
+            dof_props['driveMode'][1] = gymapi.DOF_MODE_VEL
+            dof_props['stiffness'][:] = 0.0
+            dof_props['damping'][:] = 1.0
+            self.gym.set_actor_dof_properties(env_ptr, robot_handle, dof_props)
 
-        self.n_env_rigid_bodies = self.gym.get_env_rigid_body_count(env_ptr)
 
     def reset_idx(self, env_ids):
 
@@ -143,20 +154,9 @@ class VSS_V1(VecTask):
         # implement pre-physics simulation code here
         #    - e.g. apply actions
         # Applying a force on X axis at the center of the robot base
-        actions.to(self.device)
+        actions.clone().to(self.device)
 
-        forces_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
-        torques_tensor = torch.zeros((self.num_envs, self.n_env_rigid_bodies, 3), device=self.device, dtype=torch.float)
-        
-        # wheel_forces = forces_tensor[:, -2:, :1].view((self.num_envs, 2))
-        # wheel_forces[:] = actions[:] / 2
-
-        forces_tensor[:, -2, 0] = actions[:, 0]
-        forces_tensor[:, -1, 0] = actions[:, 1]
-
-        forces = gymtorch.unwrap_tensor(forces_tensor)
-        torques = gymtorch.unwrap_tensor(torques_tensor)
-        self.gym.apply_rigid_body_force_tensors(self.sim, forces, torques, gymapi.LOCAL_SPACE)
+        self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(actions.squeeze() * self.max_wheel_speed))
 
     def compute_reward(self):
         # Calculate previous robot distance to ball

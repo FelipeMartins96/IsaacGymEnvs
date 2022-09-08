@@ -31,7 +31,7 @@ def train(cfg : DictConfig) -> None:
 
     while True:
         actions = (2 * torch.rand((cfg.task.env.numEnvs,)+envs.action_space.shape, device=cfg.rl_device)) - 1
-        envs.step(actions * 0)
+        envs.step(actions)
 
 
 if __name__ == "__main__":
