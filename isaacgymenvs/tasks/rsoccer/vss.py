@@ -55,10 +55,10 @@ def get_cfg():
 
 
 class VSS(VecTask):
-    def __init__(self, has_grad=True, record=False):
-        self.cfg = get_cfg()
-        self.max_episode_length = 400
+    def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
+        self.cfg = cfg
 
+        self.max_episode_length = 400
         self.n_robots_per_team = 3
         self.n_robot_dofs = 2
 
@@ -77,7 +77,7 @@ class VSS(VecTask):
         self.min_dist = 0.07
 
         self.w_goal = 5
-        self.w_grad = 2 if has_grad else 0
+        self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
 
         self.n_agents = self.n_teams
         self.n_team_actions = self.n_robots_per_team * self.n_robot_dofs
@@ -87,17 +87,7 @@ class VSS(VecTask):
             4 + (self.n_robots) * 7 + self.n_team_actions
         )
 
-        self.cfg['virtual_screen_capture'] = record
-
-        super().__init__(
-            config=self.cfg,
-            rl_device=self.cfg['rl_device'],
-            sim_device=self.cfg['sim_device'],
-            graphics_device_id=self.cfg['graphics_device_id'],
-            headless=self.cfg['headless'],
-            virtual_screen_capture=self.cfg['virtual_screen_capture'],
-            force_render=self.cfg['force_render'],
-        )
+        super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
         entities_ids = list(range(self.n_robots + self.n_balls))
         self.combinations = torch.tensor(

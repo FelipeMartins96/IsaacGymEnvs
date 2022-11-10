@@ -4,7 +4,7 @@ import torch
 
 envs = isaacgymenvs.make(
 	seed=0, 
-	task="Ant", 
+	task="VSS", 
 	num_envs=2000,
 	sim_device="cuda:0",
 	rl_device="cuda:0",
