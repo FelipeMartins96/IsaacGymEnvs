@@ -54,7 +54,7 @@ def get_cfg():
     return cfg
 
 
-class VSS3v3SelfPlay(VecTask):
+class VSS(VecTask):
     def __init__(self, has_grad=True, record=False):
         self.cfg = get_cfg()
         self.max_episode_length = 400

@@ -47,7 +47,7 @@ from .shadow_hand import ShadowHand
 from .allegro_hand import AllegroHand
 from .trifinger import Trifinger
 
-from .rsoccer.vss import VSS3v3SelfPlay
+from .rsoccer.vss import VSS
 
 # Mappings from strings to environments
 isaacgym_task_map = {
