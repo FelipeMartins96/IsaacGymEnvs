@@ -7,6 +7,7 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:512,${...num_envs}}
   has_grad: False
+  n_controlled_robots: 1
 
 sim:
   dt: 0.05 # 1/60 s

@@ -61,6 +61,7 @@ class VSS(VecTask):
         self.max_episode_length = 400
         self.n_robots_per_team = 3
         self.n_robot_dofs = 2
+        self.n_controlled_robots = self.cfg['env']['n_controlled_robots']
 
         # FIXED VALUES
         self.n_teams = 2
@@ -80,7 +81,7 @@ class VSS(VecTask):
         self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
 
         self.n_team_actions = self.n_robots_per_team * self.n_robot_dofs
-        self.cfg['env']['numActions'] = self.n_team_actions * self.n_teams
+        self.cfg['env']['numActions'] = self.n_controlled_robots * self.n_teams
         self.cfg['env']['numObservations'] = (
             4 + (self.n_robots) * 7 + self.n_team_actions
         )
@@ -136,8 +137,7 @@ class VSS(VecTask):
         # reset progress_buf for envs reseted on previous step
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
-
-        self.dof_velocity_buf[:] = _actions.to(self.device)
+        self.dof_velocity_buf[:, :self.num_actions] = _actions.to(self.device)
 
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
