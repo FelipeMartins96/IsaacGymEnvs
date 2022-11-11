@@ -10,7 +10,7 @@ env:
   n_controlled_robots: 1
 
 sim:
-  dt: 0.05 # 1/60 s
+  dt: 0.05 # 1/20 s
   substeps: 3
   up_axis: "z"
   use_gpu_pipeline: ${eq:${...pipeline},"gpu"}

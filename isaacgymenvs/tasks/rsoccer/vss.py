@@ -59,7 +59,7 @@ class VSS(VecTask):
         self.cfg = cfg
 
         self.max_episode_length = 400
-        self.n_robots_per_team = 3
+        self.n_robots_per_team = 1
         self.n_robot_dofs = 2
         self.n_controlled_robots = self.cfg['env']['n_controlled_robots']
 
@@ -81,7 +81,7 @@ class VSS(VecTask):
         self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
 
         self.n_team_actions = self.n_robots_per_team * self.n_robot_dofs
-        self.cfg['env']['numActions'] = self.n_controlled_robots * self.n_teams
+        self.cfg['env']['numActions'] = self.n_controlled_robots * self.n_robot_dofs
         self.cfg['env']['numObservations'] = (
             4 + (self.n_robots) * 7 + self.n_team_actions
         )
