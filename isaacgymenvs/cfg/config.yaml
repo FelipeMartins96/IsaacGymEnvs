@@ -20,10 +20,12 @@ max_iterations: ''
 physics_engine: 'physx'
 # whether to use cpu or gpu pipeline
 pipeline: 'gpu'
+
+device: 'cuda:0'
 # device for running physics simulation
-sim_device: 'cuda:0'
+sim_device: ${device}
 # device to run RL
-rl_device: 'cuda:0'
+rl_device: ${device}
 graphics_device_id: 0
 
 ## PhysX arguments
