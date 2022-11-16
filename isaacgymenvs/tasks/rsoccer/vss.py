@@ -47,6 +47,9 @@ class VSS(VecTask):
         self.w_goal = 5
         self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
 
+        self.ou_theta = 0.1
+        self.ou_sigma = 0.2
+
         self.n_team_actions = self.n_robots_per_team * self.n_robot_dofs
         self.cfg['env']['numActions'] = self.n_controlled_robots * self.n_robot_dofs
         self.cfg['env']['numObservations'] = (
@@ -105,6 +108,23 @@ class VSS(VecTask):
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
         self.dof_velocity_buf[:, :self.num_actions] = _actions.to(self.device)
+        
+        # Send OU noise action to non controlled robots
+        if self.cfg['env']['has_env_ou_noise']:
+            self.ou_buffer = (
+                self.ou_buffer
+                - self.ou_theta * self.ou_buffer
+                + torch.normal(
+                    0.0,
+                    self.ou_sigma,
+                    size=self.ou_buffer.shape,
+                    device=self.device,
+                    requires_grad=False,
+                )
+            )
+            self.ou_buffer = torch.clamp(self.ou_buffer, -1.0, 1.0)
+            self.dof_velocity_buf[..., self.num_actions:] = self.ou_buffer
+
 
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
@@ -251,6 +271,7 @@ class VSS(VecTask):
             self.rw_goal[env_ids] = 0.0
             self.rw_grad[env_ids] = 0.0
             self.dof_velocity_buf[env_ids] *= 0.0
+            self.ou_buffer[env_ids] *= 0.0
 
     def _add_ground(self):
         pp = gymapi.PlaneParams()
@@ -466,6 +487,12 @@ class VSS(VecTask):
         self.dof_velocity_buf = torch.zeros(
             (self.num_envs, self.n_robots * 2), device=self.device, requires_grad=False
         )
+        self.ou_buffer = torch.zeros(
+            (self.num_envs, (self.n_robots - self.n_controlled_robots) * 2),
+            device=self.device,
+            requires_grad=False,
+        )
+
         self.mirror_tensor = torch.tensor(
             [-1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0],
             dtype=torch.float,
