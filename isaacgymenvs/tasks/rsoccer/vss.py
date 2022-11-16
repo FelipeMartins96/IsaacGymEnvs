@@ -21,39 +21,6 @@ TEAM_COLORS = [BLUE, YELLOW]
 ID_COLORS = [RED, GREEN, PURPLE, CYAN]
 
 
-def get_cfg():
-    cfg = {
-        'rl_device': 'cuda:0',
-        'sim_device': 'cuda:0',
-        'graphics_device_id': 0,
-        'headless': True,
-        'virtual_screen_capture': True,
-        'force_render': False,
-        'physics_engine': 'physx',
-    }
-
-    cfg['env'] = {
-        'numEnvs': 2048,
-    }
-
-    cfg['sim'] = {
-        'use_gpu_pipeline': True,
-        'up_axis': 'z',
-        'dt': 1 / 20,
-        'gravity': [0, 0, -9.81],
-        'substeps': 3,
-    }
-
-    cfg['sim']['physx'] = {
-        'use_gpu': True,
-        'bounce_threshold_velocity': 0.1,
-        'contact_offset': 0.01,
-        'max_depenetration_velocity': 10.0,
-    }
-
-    return cfg
-
-
 class VSS(VecTask):
     def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
         self.cfg = cfg
@@ -264,17 +231,18 @@ class VSS(VecTask):
             )
             self.robots_quats[env_ids] = quat_from_angle_axis(rand_angles, self.z_axis)
 
-            # # randomize ball velocities
-            # rand_ball_vel = (
-            #     torch.rand(
-            #         (len(env_ids), 2),
-            #         dtype=torch.float,
-            #         device=self.device,
-            #         requires_grad=False,
-            #     )
-            #     - 0.5
-            # ) * 2
-            # self.ball_vel[env_ids] = rand_ball_vel
+            # randomize ball velocities
+            if self.cfg['env']['has_initial_ball_vel']:
+                rand_ball_vel = (
+                    torch.rand(
+                        (len(env_ids), 2),
+                        dtype=torch.float,
+                        device=self.device,
+                        requires_grad=False,
+                    )
+                    - 0.5
+                ) * 2
+                self.ball_vel[env_ids] = rand_ball_vel
 
             self.gym.set_actor_root_state_tensor(
                 self.sim, gymtorch.unwrap_tensor(self.root_state)

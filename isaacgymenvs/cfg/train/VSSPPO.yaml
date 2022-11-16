@@ -46,13 +46,13 @@ params:
     reward_shaper:
       scale_value: 1000
     normalize_advantage: True
-    gamma: 0.99
+    gamma: 0.995
     tau: 0.95
     learning_rate: 1e-3 
     lr_schedule: None
     kl_threshold: 0.008
-    score_to_win: 8
-    max_epochs: ${resolve_default:200,${....max_iterations}}
+    score_to_win: 100
+    max_epochs: ${resolve_default:500,${....max_iterations}}
     save_best_after: 25
     save_frequency: 25
     grad_norm: 1.5
