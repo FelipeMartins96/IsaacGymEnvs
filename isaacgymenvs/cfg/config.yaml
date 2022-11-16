@@ -47,8 +47,8 @@ wandb_name: ${train.params.config.name}
 wandb_entity: ''
 wandb_project: 'isaacgymenvs'
 capture_video: False
-capture_video_freq: 1464
-capture_video_len: 100
+capture_video_freq: 15000
+capture_video_len: 200
 force_render: True
 
 # disables rendering
