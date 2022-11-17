@@ -26,7 +26,7 @@ class VSS(VecTask):
         self.cfg = cfg
 
         self.max_episode_length = 400
-        self.n_robots_per_team = 1
+        self.n_robots_per_team = 3
         self.n_robot_dofs = 2
         self.n_controlled_robots = self.cfg['env']['n_controlled_robots']
 
