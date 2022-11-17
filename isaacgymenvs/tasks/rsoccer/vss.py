@@ -153,7 +153,7 @@ class VSS(VecTask):
         _, p_grad = compute_vss_rewards(
             self.ball_pos,
             self.rew_buf,
-            self.yellow_goal,
+            self.yellow_goal + self.grad_offset,
             self.field_width,
             self.goal_height,
         )
@@ -161,7 +161,7 @@ class VSS(VecTask):
         goal, grad = compute_vss_rewards(
             self.ball_pos,
             self.rew_buf,
-            self.yellow_goal,
+            self.yellow_goal + self.grad_offset,
             self.field_width,
             self.goal_height,
         )
@@ -477,6 +477,12 @@ class VSS(VecTask):
             device=self.device,
             requires_grad=False,
         )
+        self.grad_offset = torch.tensor(
+            [0.1, 0.0],
+            dtype=torch.float,
+            device=self.device,
+            requires_grad=False,
+        ) # Add goal depth to grad calculation to decrease goal center weight
 
         self.rw_goal = torch.zeros_like(
             self.rew_buf[:], device=self.device, requires_grad=False
