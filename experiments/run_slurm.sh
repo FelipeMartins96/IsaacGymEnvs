@@ -1,4 +1,4 @@
 case $1 in
-0) python train_task.py --record --num-envs=4096 --experiment=ddpg-base;;
+0) python train_task.py --num-envs=4096 --experiment=ddpg-WmoveWenergy;;
 *) echo "Opcao Invalida!" ;;
 esac

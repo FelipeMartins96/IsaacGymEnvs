@@ -159,6 +159,16 @@ def train(args) -> None:
                 infos['terminal_rewards']['grad'][env_ids].mean(),
                 global_step,
             )
+            writer.add_scalar(
+                "charts/episodic_energy",
+                infos['terminal_rewards']['energy'][env_ids].mean(),
+                global_step,
+            )
+            writer.add_scalar(
+                "charts/episodic_move",
+                infos['terminal_rewards']['move'][env_ids].mean(),
+                global_step,
+            )
             real_next_obs[env_ids] = infos["terminal_observation"][env_ids]
             dones = dones.logical_and(infos["time_outs"].logical_not())
             exp_noise[env_ids] *= 0.0

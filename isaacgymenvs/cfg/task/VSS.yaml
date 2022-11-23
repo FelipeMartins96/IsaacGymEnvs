@@ -7,6 +7,8 @@ physics_engine: ${..physics_engine}
 env:
   numEnvs: ${resolve_default:4096,${...num_envs}}
   has_grad: True
+  has_energy: True
+  has_move: True
   has_initial_ball_vel: True
   has_env_ou_noise: True
   n_controlled_robots: 1

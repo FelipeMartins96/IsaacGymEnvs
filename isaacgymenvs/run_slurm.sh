@@ -1,4 +1,4 @@
 case $1 in
-0) python train.py task=VSS experiment=ppo-base;;
+0) python train.py task=VSS experiment=ppo-WmoveWenergy;;
 *) echo "Opcao Invalida!" ;;
 esac
