@@ -23,16 +23,20 @@ class QNetwork(nn.Module):
             np.array(env.observation_space.shape).prod() + n_actions,
             256,
         )
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 256)
-        self.fc4 = nn.Linear(256, 1)
+        self.fc2 = nn.Linear(256, 512)
+        self.fc3 = nn.Linear(512, 512)
+        self.fc4 = nn.Linear(512, 512)
+        self.fc5 = nn.Linear(512, 512)
+        self.fc6 = nn.Linear(256, 1)
 
     def forward(self, x, a):
         x = torch.cat([x, a], 1)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
-        x = self.fc4(x)
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+        x = self.fc6(x)
         return x
 
 
@@ -40,14 +44,18 @@ class Actor(nn.Module):
     def __init__(self, env, n_actions):
         super().__init__()
         self.fc1 = nn.Linear(np.array(env.observation_space.shape).prod(), 256)
-        self.fc2 = nn.Linear(256, 256)
-        self.fc3 = nn.Linear(256, 256)
+        self.fc2 = nn.Linear(256, 512)
+        self.fc3 = nn.Linear(512, 512)
+        self.fc4 = nn.Linear(512, 512)
+        self.fc5 = nn.Linear(512, 256)
         self.fc_mu = nn.Linear(256, n_actions)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
         x = torch.tanh(self.fc_mu(x))
         return x
 
