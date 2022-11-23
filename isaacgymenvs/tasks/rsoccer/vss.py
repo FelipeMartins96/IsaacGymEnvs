@@ -44,13 +44,10 @@ class VSS(VecTask):
         self.goal_height = 0.4
         self.min_dist = 0.07
 
-        self.w_goal = 100
-        # wp= 8 / (self.field_widt+0.2) / 2 / dt
-        self.w_grad = (4 / self.cfg['sim']['dt']) / (self.field_width+0.2) if self.cfg['env']['has_grad'] else 0
-        # we = 1e-3 * 1 (self.robot_max_wheel_rad_s * wheel_radius) * 100 (to cm/s) 
-        self.w_energy = 0.1 if self.cfg['env']['has_energy'] else 0
-        # wm=0.02 scaled * 100, converted to cm, divided by timestep
-        self.w_move = 2 * 100 / self.cfg['sim']['dt'] if self.cfg['env']['has_move'] else 0
+        self.w_goal = 10
+        self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
+        self.w_energy = 1/400 if self.cfg['env']['has_energy'] else 0
+        self.w_move = 2 / self.cfg['sim']['dt'] if self.cfg['env']['has_move'] else 0
 
         self.ou_theta = 0.1
         self.ou_sigma = 0.2
