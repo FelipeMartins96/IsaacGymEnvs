@@ -26,7 +26,7 @@ class QNetwork(nn.Module):
         self.fc2 = nn.Linear(256, 512)
         self.fc3 = nn.Linear(512, 512)
         self.fc4 = nn.Linear(512, 512)
-        self.fc5 = nn.Linear(512, 512)
+        self.fc5 = nn.Linear(512, 256)
         self.fc6 = nn.Linear(256, 1)
 
     def forward(self, x, a):
