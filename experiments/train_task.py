@@ -72,7 +72,26 @@ def train(args) -> None:
         virtual_screen_capture=args.record,
         force_render=False,
     )
+    if args.wandb:
+        import wandb
+        run = wandb.init(
+            project='isaacgymenvs',
+            group='',
+            entity='felipemartins',
+            sync_tensorboard=True,
+            name=args.experiment,
+            resume="allow",
+            monitor_gym=True,
+        )
 
+    if args.record:
+            task.is_vector_env = True
+            task = gym.wrappers.RecordVideo(
+                task,
+                f"videos/{args.experiment}",
+                step_trigger=lambda step: step % 10000 == 0,
+                video_length=200,
+            )
     writer = SummaryWriter(comment=args.experiment)
     device = "cuda:0"
     lr = 3e-4
@@ -120,8 +139,6 @@ def train(args) -> None:
 
     exp_noise = task.zero_actions()
 
-    frames = []
-    record_flag = 1
     for global_step in range(total_timesteps):
         # ALGO LOGIC: put action logic here
 
@@ -136,17 +153,6 @@ def train(args) -> None:
 
         # TRY NOT TO MODIFY: execute the game and log data.
         next_obs, rewards, dones, infos = task.step(actions)
-
-        if global_step % 30000 == 0:
-            record_flag = 1
-        if args.record and record_flag:
-            frames.append(task.render(mode='rgb_array'))
-            record_flag += 1
-            if record_flag > 200:
-                clip = ImageSequenceClip(frames, fps=20)
-                clip.write_videofile(f'{writer.get_logdir()}/video-{global_step}.mp4')
-                frames = []
-                record_flag = 0
 
         # # TRY NOT TO MODIFY: record rewards for plotting purposes
         real_next_obs = next_obs['obs'].clone()
@@ -259,6 +265,7 @@ def train(args) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--record", default=False, action="store_true")
+    parser.add_argument("--wandb", default=False, action="store_true")
     parser.add_argument("--experiment", default='', type=str)
     parser.add_argument("--num-envs", default=1, type=int)
     parser.add_argument("--seed", default=0, type=int)
