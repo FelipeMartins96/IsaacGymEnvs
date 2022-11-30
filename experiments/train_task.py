@@ -92,7 +92,7 @@ def train(args) -> None:
                 step_trigger=lambda step: step % 10000 == 0,
                 video_length=200,
             )
-    writer = SummaryWriter(comment=args.experiment)
+    writer = SummaryWriter()
     device = "cuda:0"
     lr = 3e-4
     total_timesteps = 2000000
@@ -193,7 +193,7 @@ def train(args) -> None:
                 'observations': obs['obs'],
                 'next_observations': real_next_obs,
                 'actions': actions,
-                'rewards': rewards,
+                'rewards': rewards * 50,
                 'dones': dones,
             }
         )
