@@ -1,4 +1,6 @@
 case $1 in
-0) python train.py task=VSS experiment=ppo-testRender capture_video=True headless=False;;
+0) python train.py task=VSS experiment=ppo-fixWseed$1 seed=$1;;
+1) python train.py task=VSS experiment=ppo-fixWseed$1 seed=$1;;
+2) python train.py task=VSS experiment=ppo-fixWseed$1 seed=$1;;
 *) echo "Opcao Invalida!" ;;
 esac
