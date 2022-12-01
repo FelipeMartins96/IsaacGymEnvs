@@ -98,7 +98,7 @@ def train(args) -> None:
     lr = 3e-4
     total_timesteps = 40000
     learning_starts = 1e7
-    batch_size = 4096
+    batch_size = 16384
     gamma = 0.99
     tau = 0.005
     rb_size = 8000000
