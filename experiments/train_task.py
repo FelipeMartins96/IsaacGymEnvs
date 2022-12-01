@@ -169,11 +169,11 @@ def train(args) -> None:
         
         if len(env_ids):
             ep_count += len(env_ids)
-            rewards_info[0] += infos['progress_buffer'][env_ids].sum().cpu()
-            rewards_info[1] += infos['terminal_rewards']['goal'][env_ids].sum().cpu()
-            rewards_info[2] += infos['terminal_rewards']['grad'][env_ids].sum().cpu()
-            rewards_info[3] += infos['terminal_rewards']['energy'][env_ids].sum().cpu()
-            rewards_info[4] += infos['terminal_rewards']['move'][env_ids].sum().cpu()
+            rewards_info[0] += infos['progress_buffer'][env_ids].sum()
+            rewards_info[1] += infos['terminal_rewards']['goal'][env_ids].sum()
+            rewards_info[2] += infos['terminal_rewards']['grad'][env_ids].sum()
+            rewards_info[3] += infos['terminal_rewards']['energy'][env_ids].sum()
+            rewards_info[4] += infos['terminal_rewards']['move'][env_ids].sum()
             real_next_obs[env_ids] = infos["terminal_observation"][env_ids]
             dones = dones.logical_and(infos["time_outs"].logical_not())
             exp_noise[env_ids] *= 0.0
