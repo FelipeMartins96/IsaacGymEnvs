@@ -96,12 +96,12 @@ def train(args) -> None:
     writer = SummaryWriter()
     device = "cuda:0"
     lr = 3e-4
-    total_timesteps = 40000
+    total_timesteps = 500000
     learning_starts = 1e7
-    batch_size = 65536
+    batch_size = 16384
     gamma = 0.99
     tau = 0.005
-    rb_size = 8000000
+    rb_size = 10000000
 
     n_controlled_robots = 1
     assert n_controlled_robots <= 3
@@ -123,6 +123,8 @@ def train(args) -> None:
 
     ou_theta = 0.1
     ou_sigma = 0.15
+    rewards_info = torch.zeros(5, device=device, requires_grad=False)
+    ep_count = 0
 
     def random_ou(prev):
         noise = (
@@ -158,32 +160,23 @@ def train(args) -> None:
         # # TRY NOT TO MODIFY: record rewards for plotting purposes
         real_next_obs = next_obs['obs'].clone()
         env_ids = dones.nonzero(as_tuple=False).squeeze(-1)
+        
         if len(env_ids):
-            writer.add_scalar(
-                "charts/episodic_length",
-                infos['progress_buffer'][env_ids].mean(),
-                global_step,
-            )
-            writer.add_scalar(
-                "charts/episodic_goal",
-                infos['terminal_rewards']['goal'][env_ids].mean(),
-                global_step,
-            )
-            writer.add_scalar(
-                "charts/episodic_grad",
-                infos['terminal_rewards']['grad'][env_ids].mean(),
-                global_step,
-            )
-            writer.add_scalar(
-                "charts/episodic_energy",
-                infos['terminal_rewards']['energy'][env_ids].mean(),
-                global_step,
-            )
-            writer.add_scalar(
-                "charts/episodic_move",
-                infos['terminal_rewards']['move'][env_ids].mean(),
-                global_step,
-            )
+            ep_count += len(env_ids)
+            rewards_info[0] += infos['progress_buffer'][env_ids].sum().cpu()
+            rewards_info[1] += infos['terminal_rewards']['goal'][env_ids].sum().cpu()
+            rewards_info[2] += infos['terminal_rewards']['grad'][env_ids].sum().cpu()
+            rewards_info[3] += infos['terminal_rewards']['energy'][env_ids].sum().cpu()
+            rewards_info[4] += infos['terminal_rewards']['move'][env_ids].sum().cpu()
+            if global_step % task.max_episode_lenght == 0:
+                writer.add_scalar("charts/episodic_length",rewards_info[0],global_step)
+                writer.add_scalar("charts/episodic_goal",rewards_info[1],global_step)
+                writer.add_scalar("charts/episodic_grad",rewards_info[2],global_step)
+                writer.add_scalar("charts/episodic_energy",rewards_info[3],global_step)
+                writer.add_scalar("charts/episodic_move",rewards_info[4],global_step)
+                ep_count = 0
+                rewards_info *= 0
+
             real_next_obs[env_ids] = infos["terminal_observation"][env_ids]
             dones = dones.logical_and(infos["time_outs"].logical_not())
             exp_noise[env_ids] *= 0.0
@@ -239,7 +232,7 @@ def train(args) -> None:
                     tau * param.data + (1 - tau) * target_param.data
                 )
 
-            if global_step % 100 == 0:
+            if global_step % task.max_episode_lenght == 0:
                 writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
                 writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
                 writer.add_scalar(
