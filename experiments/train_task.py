@@ -174,7 +174,7 @@ def train(args) -> None:
             rewards_info[2] += infos['terminal_rewards']['grad'][env_ids].sum().cpu()
             rewards_info[3] += infos['terminal_rewards']['energy'][env_ids].sum().cpu()
             rewards_info[4] += infos['terminal_rewards']['move'][env_ids].sum().cpu()
-            if global_step % task.max_episode_lenght == 0:
+            if global_step % task.max_episode_length == 0:
                 writer.add_scalar("charts/episodic_length",rewards_info[0],global_step)
                 writer.add_scalar("charts/episodic_goal",rewards_info[1],global_step)
                 writer.add_scalar("charts/episodic_grad",rewards_info[2],global_step)
@@ -238,7 +238,7 @@ def train(args) -> None:
                     tau * param.data + (1 - tau) * target_param.data
                 )
 
-            if global_step % task.max_episode_lenght == 0:
+            if global_step % task.max_episode_length == 0:
                 writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
                 writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
                 writer.add_scalar(
