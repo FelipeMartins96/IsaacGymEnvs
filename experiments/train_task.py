@@ -102,9 +102,9 @@ def train(args) -> None:
     writer = SummaryWriter()
     device = "cuda:0"
     lr = 3e-4
-    total_timesteps = 500000
+    total_timesteps = 50000
     learning_starts = 1e7
-    batch_size = 16384
+    batch_size = 8192
     gamma = 0.99
     tau = 0.005
     rb_size = 10000000
