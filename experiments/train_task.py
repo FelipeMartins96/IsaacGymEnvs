@@ -177,11 +177,12 @@ def train(args) -> None:
             if global_step % task.max_episode_length == 0:
                 rewards_info /= ep_count
                 ep_count = 0
-                writer.add_scalar("charts/episodic_length",rewards_info[0],global_step)
+                writer.add_scalar("episode_lengths/iter",rewards_info[0],global_step)
                 writer.add_scalar("charts/episodic_goal",rewards_info[1],global_step)
                 writer.add_scalar("charts/episodic_grad",rewards_info[2],global_step)
                 writer.add_scalar("charts/episodic_energy",rewards_info[3],global_step)
                 writer.add_scalar("charts/episodic_move",rewards_info[4],global_step)
+                writer.add_scalar("rewards/iter",rewards_info[1:].sum(),global_step)
                 rewards_info *= 0
 
             real_next_obs[env_ids] = infos["terminal_observation"][env_ids]
