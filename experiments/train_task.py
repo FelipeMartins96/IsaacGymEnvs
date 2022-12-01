@@ -10,6 +10,7 @@ import torch.optim as optim
 import numpy as np
 import time
 from copy import deepcopy
+import random
 
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 from torch.utils.tensorboard import SummaryWriter
@@ -61,6 +62,11 @@ class Actor(nn.Module):
 
 
 def train(args) -> None:
+    # TRY NOT TO MODIFY: seeding
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
     task = isaacgymenvs.make(
         seed=args.seed,
         task="VSS",
