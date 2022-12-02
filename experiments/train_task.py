@@ -104,12 +104,12 @@ def train(args) -> None:
     lr = 3e-4
     total_timesteps = 50000
     learning_starts = 1e7
-    batch_size = 8192
+    batch_size = 4096
     gamma = 0.99
     tau = 0.005
     rb_size = 10000000
 
-    n_controlled_robots = 1
+    n_controlled_robots = task.n_controlled_robots
     assert n_controlled_robots <= 3
     n_actions = n_controlled_robots * 2
 
