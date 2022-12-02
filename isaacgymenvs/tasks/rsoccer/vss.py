@@ -46,7 +46,7 @@ class VSS(VecTask):
 
         self.w_goal = 10
         self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
-        self.w_energy = 1/800 if self.cfg['env']['has_energy'] else 0
+        self.w_energy = 1/400 if self.cfg['env']['has_energy'] else 0
         self.w_move = 3 if self.cfg['env']['has_move'] else 0
 
         self.ou_theta = 0.1
@@ -561,7 +561,7 @@ def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, fiel
     grad = dist_ball_left_goal - dist_ball_right_goal
     
     # ENERGY
-    energy = -torch.sum(torch.abs(actions), dim=1)
+    energy = -torch.mean(torch.abs(actions), dim=1)
 
     # goal, grad, energy, move
     return goal, grad, energy, move
