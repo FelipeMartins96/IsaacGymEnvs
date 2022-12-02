@@ -156,7 +156,7 @@ class VSS(VecTask):
         # goal, grad
         _, p_grad, _, p_move = compute_vss_rewards(
             self.ball_pos,
-            self.robots_pos[:, 0, :],
+            self.robots_pos[:, 0:self.n_controlled_robots, :],
             self.dof_velocity_buf[:, :self.num_actions],
             self.rew_buf,
             self.yellow_goal + self.grad_offset,
@@ -166,7 +166,7 @@ class VSS(VecTask):
         self._refresh_tensors()
         goal, grad, energy, move = compute_vss_rewards(
             self.ball_pos,
-            self.robots_pos[:, 0, :],
+            self.robots_pos[:, 0:self.n_controlled_robots, :],
             self.dof_velocity_buf[:, :self.num_actions],
             self.rew_buf,
             self.yellow_goal + self.grad_offset,
@@ -177,7 +177,7 @@ class VSS(VecTask):
         goal_rw = self.w_goal * goal
         grad_rw = self.w_grad * (grad - p_grad)
         energy_rw = self.w_energy * energy
-        move_rw = self.w_move * (move - p_move)
+        move_rw = self.w_move * (move - p_move).mean(dim=1)
 
         self.rw_goal += goal_rw
         self.rw_grad += grad_rw
@@ -553,7 +553,7 @@ def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, fiel
     goal = torch.where(is_goal_yellow, -ones, goal)
 
     # MOVE
-    move = -torch.norm(robot_pos[:, :] - ball_pos, dim=1)
+    move = -torch.norm(robot_pos - ball_pos.unsqueeze(1), dim=-1)
 
     # GRAD
     dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
