@@ -96,24 +96,26 @@ def train(args) -> None:
                 task,
                 f"videos/{args.experiment}",
                 step_trigger=lambda step: step % 10000 == 0,
-                video_length=200,
+                video_length=1000,
             )
 
     writer = SummaryWriter()
     device = "cuda:0"
     lr = 3e-4
-    total_timesteps = 50000
+    total_timesteps = 400000 if not args.record else 1100
     learning_starts = 1e7
-    batch_size = 8192
+    batch_size = 4096
     gamma = 0.99
     tau = 0.005
     rb_size = 10000000
 
-    n_controlled_robots = 1
+    n_controlled_robots = task.n_controlled_robots
     assert n_controlled_robots <= 3
     n_actions = n_controlled_robots * 2
 
     actor = Actor(task, n_actions).to(device=device)
+    if args.record:
+        actor.load_state_dict(torch.load(args.checkpoint))
     qf1 = QNetwork(task, n_actions).to(device=device)
     qf1_target = QNetwork(task, n_actions).to(device=device)
     target_actor = Actor(task, n_actions).to(device=device)
@@ -153,7 +155,9 @@ def train(args) -> None:
 
         with torch.no_grad():
             exp_noise = random_ou(exp_noise)
-            if rb.get_total_count() < learning_starts:
+            if args.record:
+                actions = actor(obs['obs'])
+            elif rb.get_total_count() < learning_starts:
                 actions = exp_noise
             else:
                 actions = actor(obs['obs']) + exp_noise
@@ -178,7 +182,7 @@ def train(args) -> None:
             dones = dones.logical_and(infos["time_outs"].logical_not())
             exp_noise[env_ids] *= 0.0
 
-        if ep_count and global_step % task.max_episode_length == 0:
+        if not args.record and ep_count and global_step % task.max_episode_length == 0:
             rewards_info /= ep_count
             ep_count = 0
             writer.add_scalar("episode_lengths/iter",rewards_info[0],global_step)
@@ -204,7 +208,7 @@ def train(args) -> None:
         obs = deepcopy(next_obs)
 
         # ALGO LOGIC: training.
-        if rb.get_total_count() > learning_starts:
+        if not args.record and rb.get_total_count() > learning_starts:
             data = rb.sample(batch_size)
             with torch.no_grad():
                 next_state_actions = target_actor(data['next_observations'])
@@ -258,10 +262,11 @@ def train(args) -> None:
                     actor.state_dict(),
                     f"{writer.get_logdir()}/actor{args.experiment}.pth",
                 )
-    torch.save(
-        actor.state_dict(),
-        f"{writer.get_logdir()}/actor{args.experiment}.pth",
-    )
+    if not args.record:
+        torch.save(
+            actor.state_dict(),
+            f"{writer.get_logdir()}/actor{args.experiment}.pth",
+        )
 
 
 if __name__ == "__main__":
@@ -269,6 +274,7 @@ if __name__ == "__main__":
     parser.add_argument("--record", default=False, action="store_true")
     parser.add_argument("--wandb", default=False, action="store_true")
     parser.add_argument("--experiment", default='', type=str)
+    parser.add_argument("--checkpoint", default='', type=str)
     parser.add_argument("--num-envs", default=1, type=int)
     parser.add_argument("--seed", default=0, type=int)
     args = parser.parse_args()

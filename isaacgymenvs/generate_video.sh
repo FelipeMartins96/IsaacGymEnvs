@@ -1,0 +1,1 @@
+python train.py task=VSS test=True wandb_activate=False capture_video=True num_envs=32 capture_video_len=1000 headless=False checkpoint=$1
