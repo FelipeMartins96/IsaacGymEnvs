@@ -1,5 +1,5 @@
 # used to create the object
-name: VSS
+name: VSSDecentralizedMA
 
 physics_engine: ${..physics_engine}
 
@@ -9,8 +9,8 @@ env:
   has_grad: True
   has_energy: True
   has_move: True
-  has_initial_ball_vel: True
-  has_env_ou_noise: True
+  has_initial_ball_vel: False
+  has_env_ou_noise: False
   n_controlled_robots: 3
 
 sim:
