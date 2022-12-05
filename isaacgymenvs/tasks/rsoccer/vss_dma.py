@@ -53,10 +53,12 @@ class VSSDMA(VecTask):
         self.ou_sigma = 0.2
 
         self.n_team_actions = self.n_robots_per_team * self.n_robot_dofs
-        self.cfg['env']['numActions'] = self.n_controlled_robots * self.n_robot_dofs
+        self.cfg['env']['numActions'] = self.n_robot_dofs
         self.cfg['env']['numObservations'] = (
             4 + (self.n_robots) * 7 + self.n_team_actions
         )
+        assert self.cfg['env']['numEnvs'] % self.n_controlled_robots == 0
+        self.num_fields = self.cfg['env']['numEnvs'] // self.n_controlled_robots
 
         super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
 
@@ -90,9 +92,9 @@ class VSSDMA(VecTask):
         env_bounds_high = (
             gymapi.Vec3(self.env_total_width, self.env_total_height, 2.0) / 2
         )
-        for i in range(self.num_envs):
+        for i in range(self.num_fields):
             _env = self.gym.create_env(
-                self.sim, env_bounds_low, env_bounds_high, int(np.sqrt(self.num_envs))
+                self.sim, env_bounds_low, env_bounds_high, int(np.sqrt(self.num_fields))
             )
 
             self._add_ball(_env, i)
@@ -109,8 +111,8 @@ class VSSDMA(VecTask):
         # reset progress_buf for envs reseted on previous step
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
-        self.dof_velocity_buf[:, :self.num_actions] = _actions.to(self.device)
-        
+        # TODO: actions conversions from envs to fields
+        # self.dof_velocity_buf[:, :self.num_actions] = _actions.to(self.device)
         # Send OU noise action to non controlled robots
         if self.cfg['env']['has_env_ou_noise']:
             self.ou_buffer = (
@@ -153,65 +155,70 @@ class VSSDMA(VecTask):
         self.compute_observations()
 
     def compute_rewards_and_dones(self):
-        # goal, grad
-        _, p_grad, _, p_move = compute_vss_rewards(
-            self.ball_pos,
-            self.robots_pos[:, 0:self.n_controlled_robots, :],
-            self.dof_velocity_buf[:, :self.num_actions],
-            self.rew_buf,
-            self.yellow_goal + self.grad_offset,
-            self.field_width,
-            self.goal_height,
-        )
-        self._refresh_tensors()
-        goal, grad, energy, move = compute_vss_rewards(
-            self.ball_pos,
-            self.robots_pos[:, 0:self.n_controlled_robots, :],
-            self.dof_velocity_buf[:, :self.num_actions],
-            self.rew_buf,
-            self.yellow_goal + self.grad_offset,
-            self.field_width,
-            self.goal_height,
-        )
+        # TODO: convert rewards from n_fields to n_envs
+        # # goal, grad
+        # _, p_grad, _, p_move = compute_vss_rewards(
+        #     self.ball_pos,
+        #     self.robots_pos[:, 0:self.n_controlled_robots, :],
+        #     self.dof_velocity_buf[:, :self.num_actions],
+        #     self.rew_buf,
+        #     self.yellow_goal + self.grad_offset,
+        #     self.field_width,
+        #     self.goal_height,
+        # )
+        # self._refresh_tensors()
+        # goal, grad, energy, move = compute_vss_rewards(
+        #     self.ball_pos,
+        #     self.robots_pos[:, 0:self.n_controlled_robots, :],
+        #     self.dof_velocity_buf[:, :self.num_actions],
+        #     self.rew_buf,
+        #     self.yellow_goal + self.grad_offset,
+        #     self.field_width,
+        #     self.goal_height,
+        # )
 
-        goal_rw = self.w_goal * goal
-        grad_rw = self.w_grad * (grad - p_grad)
-        energy_rw = self.w_energy * energy
-        move_rw = self.w_move * (move - p_move).mean(dim=1)
+        # goal_rw = self.w_goal * goal
+        # grad_rw = self.w_grad * (grad - p_grad)
+        # energy_rw = self.w_energy * energy
+        # move_rw = self.w_move * (move - p_move).mean(dim=1)
 
-        self.rw_goal += goal_rw
-        self.rw_grad += grad_rw
-        self.rw_energy += energy_rw
-        self.rw_move += move_rw
+        # self.rw_goal += goal_rw
+        # self.rw_grad += grad_rw
+        # self.rw_energy += energy_rw
+        # self.rw_move += move_rw
 
-        self.rew_buf[:] = goal_rw + grad_rw + energy_rw + move_rw
+        # self.rew_buf[:] = goal_rw + grad_rw + energy_rw + move_rw
 
-        self.reset_buf = compute_vss_dones(
-            ball_pos=self.ball_pos,
-            reset_buf=self.reset_buf,
-            progress_buf=self.progress_buf,
-            max_episode_length=self.max_episode_length,
-            field_width=self.field_width,
-            goal_height=self.goal_height,
-        )
+        # TODO: convert dones from n_fields to n_envs
+        # self.reset_buf = compute_vss_dones(
+        #     ball_pos=self.ball_pos,
+        #     reset_buf=self.reset_buf,
+        #     progress_buf=self.progress_buf,
+        #     max_episode_length=self.max_episode_length,
+        #     field_width=self.field_width,
+        #     goal_height=self.goal_height,
+        # )
+        self.reset_buf *= 0
 
     def compute_observations(self):
-        self.obs_buf[:, :2] = self.ball_pos
-        self.obs_buf[:, 2:4] = self.ball_vel
-        self.obs_buf[:, 4 : -self.n_team_actions] = compute_robots_obs(
-            self.robots_pos,
-            self.robots_vel,
-            self.robots_quats,
-            self.robots_ang_vel,
-            self.n_robots,
-            self.num_envs,
-        )
-        self.obs_buf[:, -self.n_team_actions :] = self.dof_velocity_buf[
-            ..., : self.n_team_actions
-        ]
+        pass
+        # TODO: convert obs from n_fields to n_envs
+        # self.obs_buf[:, :2] = self.ball_pos
+        # self.obs_buf[:, 2:4] = self.ball_vel
+        # self.obs_buf[:, 4 : -self.n_team_actions] = compute_robots_obs(
+        #     self.robots_pos,
+        #     self.robots_vel,
+        #     self.robots_quats,
+        #     self.robots_ang_vel,
+        #     self.n_robots,
+        #     self.num_fields,
+        # )
+        # self.obs_buf[:, -self.n_team_actions :] = self.dof_velocity_buf[
+        #     ..., : self.n_team_actions
+        # ]
 
     def reset_dones(self):
-        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        env_ids = self.reset_buf[::self.n_controlled_robots].nonzero(as_tuple=False).squeeze(-1)
 
         if len(env_ids) > 0:
             # Reset env state
@@ -463,7 +470,7 @@ class VSSDMA(VecTask):
         _root_state = self.gym.acquire_actor_root_state_tensor(self.sim)
 
         self.root_state = gymtorch.wrap_tensor(_root_state).view(
-            self.num_envs, self.num_actors, 13
+            self.num_fields, self.num_actors, 13
         )
 
         self.root_pos = self.root_state[..., 0:2]
@@ -511,10 +518,10 @@ class VSSDMA(VecTask):
             self.rew_buf[:], device=self.device, requires_grad=False
         )
         self.dof_velocity_buf = torch.zeros(
-            (self.num_envs, self.n_robots * 2), device=self.device, requires_grad=False
+            (self.num_fields, self.n_robots * 2), device=self.device, requires_grad=False
         )
         self.ou_buffer = torch.zeros(
-            (self.num_envs, (self.n_robots - self.n_controlled_robots) * 2),
+            (self.num_fields, (self.n_robots - self.n_controlled_robots) * 2),
             device=self.device,
             requires_grad=False,
         )
@@ -599,18 +606,18 @@ def compute_robots_obs(
     robots_quats,
     robots_ang_vel,
     n_robots,
-    num_envs,
+    num_fields,
 ):
     # type: (Tensor, Tensor, Tensor, Tensor, int, int) -> Tensor
     robots_obs = torch.zeros(
-        (num_envs, n_robots, 7), dtype=torch.float, device=robots_pos.device
+        (num_fields, n_robots, 7), dtype=torch.float, device=robots_pos.device
     )
     robots_obs[..., 0:2] = robots_pos
     robots_obs[..., 2:4] = robots_vel
     _, _, angles = get_euler_xyz(robots_quats.reshape(-1, 4))
-    angles = angles.reshape(num_envs, n_robots)
+    angles = angles.reshape(num_fields, n_robots)
     robots_obs[..., 4] = torch.cos(angles)
     robots_obs[..., 5] = torch.sin(angles)
     robots_obs[..., 6] = robots_ang_vel / 50.0
 
-    return robots_obs.view(num_envs, -1)
+    return robots_obs.view(num_fields, -1)
