@@ -1,0 +1,1 @@
+python train_task.py --num-envs=32 --experiment=record --seed=0 --record --checkpoint $1
