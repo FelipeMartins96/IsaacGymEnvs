@@ -1,0 +1,27 @@
+# used to create the object
+name: VSS
+
+physics_engine: ${..physics_engine}
+
+# if given, will override the device setting in gym. 
+env:
+  numEnvs: ${resolve_default:4096,${...num_envs}}
+  has_grad: True
+  has_energy: True
+  has_move: True
+  has_initial_ball_vel: True
+  has_env_ou_noise: True
+  n_controlled_robots: 3
+
+sim:
+  dt: 0.05 # 1/20 s
+  substeps: 3
+  up_axis: "z"
+  use_gpu_pipeline: ${eq:${...pipeline},"gpu"}
+  gravity: [0.0, 0.0, -9.81]
+  physx:
+    use_gpu: ${contains:"cuda",${....sim_device}} # set to False to run on CPU
+    contact_offset: 0.01
+    bounce_threshold_velocity: 0.1
+    max_depenetration_velocity: 10.0
+
