@@ -10,7 +10,7 @@ env:
   has_energy: True
   has_move: True
   has_initial_ball_vel: True
-  has_env_ou_noise: False
+  has_env_ou_noise: True
   n_controlled_robots: 3
 
 sim:

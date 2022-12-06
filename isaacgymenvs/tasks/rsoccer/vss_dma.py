@@ -22,7 +22,16 @@ ID_COLORS = [RED, GREEN, PURPLE, CYAN]
 
 
 class VSSDMA(VecTask):
-    def __init__(self, cfg, rl_device, sim_device, graphics_device_id, headless, virtual_screen_capture, force_render):
+    def __init__(
+        self,
+        cfg,
+        rl_device,
+        sim_device,
+        graphics_device_id,
+        headless,
+        virtual_screen_capture,
+        force_render,
+    ):
         self.cfg = cfg
 
         self.max_episode_length = 400
@@ -46,7 +55,7 @@ class VSSDMA(VecTask):
 
         self.w_goal = 10
         self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
-        self.w_energy = 1/400 if self.cfg['env']['has_energy'] else 0
+        self.w_energy = 1 / 400 if self.cfg['env']['has_energy'] else 0
         self.w_move = 3 if self.cfg['env']['has_move'] else 0
 
         self.ou_theta = 0.1
@@ -60,7 +69,15 @@ class VSSDMA(VecTask):
         assert self.cfg['env']['numEnvs'] % self.n_controlled_robots == 0
         self.num_fields = self.cfg['env']['numEnvs'] // self.n_controlled_robots
 
-        super().__init__(config=self.cfg, rl_device=rl_device, sim_device=sim_device, graphics_device_id=graphics_device_id, headless=headless, virtual_screen_capture=virtual_screen_capture, force_render=force_render)
+        super().__init__(
+            config=self.cfg,
+            rl_device=rl_device,
+            sim_device=sim_device,
+            graphics_device_id=graphics_device_id,
+            headless=headless,
+            virtual_screen_capture=virtual_screen_capture,
+            force_render=force_render,
+        )
 
         entities_ids = list(range(self.n_robots + self.n_balls))
         self.combinations = torch.tensor(
@@ -112,7 +129,9 @@ class VSSDMA(VecTask):
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
         # TODO: actions conversions from envs to fields
-        # self.dof_velocity_buf[:, :self.num_actions] = _actions.to(self.device)
+        self.dof_velocity_buf[:, : self.n_controlled_robots] = _actions.to(
+            self.device
+        ).view(-1, self.n_controlled_robots, self.n_robot_dofs)
         # Send OU noise action to non controlled robots
         if self.cfg['env']['has_env_ou_noise']:
             self.ou_buffer = (
@@ -127,8 +146,7 @@ class VSSDMA(VecTask):
                 )
             )
             self.ou_buffer = torch.clamp(self.ou_buffer, -1.0, 1.0)
-            self.dof_velocity_buf[..., self.num_actions:] = self.ou_buffer
-
+            self.dof_velocity_buf[:, self.n_controlled_robots :] = self.ou_buffer
 
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
         self.gym.set_dof_velocity_target_tensor(self.sim, gymtorch.unwrap_tensor(act))
@@ -218,7 +236,11 @@ class VSSDMA(VecTask):
         # ]
 
     def reset_dones(self):
-        env_ids = self.reset_buf[::self.n_controlled_robots].nonzero(as_tuple=False).squeeze(-1)
+        env_ids = (
+            self.reset_buf[:: self.n_controlled_robots]
+            .nonzero(as_tuple=False)
+            .squeeze(-1)
+        )
 
         if len(env_ids) > 0:
             # Reset env state
@@ -287,6 +309,7 @@ class VSSDMA(VecTask):
                 self.sim, gymtorch.unwrap_tensor(self.root_state)
             )
 
+            # TODO: rw is by envs, dof and ou by field
             self.rw_goal[env_ids] = 0.0
             self.rw_grad[env_ids] = 0.0
             self.rw_energy[env_ids] = 0.0
@@ -503,7 +526,7 @@ class VSSDMA(VecTask):
             dtype=torch.float,
             device=self.device,
             requires_grad=False,
-        ) # Add goal depth to grad calculation to decrease goal center weight
+        )  # Add goal depth to grad calculation to decrease goal center weight
 
         self.rw_goal = torch.zeros_like(
             self.rew_buf[:], device=self.device, requires_grad=False
@@ -518,10 +541,10 @@ class VSSDMA(VecTask):
             self.rew_buf[:], device=self.device, requires_grad=False
         )
         self.dof_velocity_buf = torch.zeros(
-            (self.num_fields, self.n_robots * 2), device=self.device, requires_grad=False
+            (self.num_fields, self.n_robots, 2), device=self.device, requires_grad=False
         )
         self.ou_buffer = torch.zeros(
-            (self.num_fields, (self.n_robots - self.n_controlled_robots) * 2),
+            (self.num_fields, self.n_robots - self.n_controlled_robots, 2),
             device=self.device,
             requires_grad=False,
         )
@@ -543,7 +566,9 @@ class VSSDMA(VecTask):
 
 
 @torch.jit.script
-def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, field_width, goal_height):
+def compute_vss_rewards(
+    ball_pos, robot_pos, actions, rew_buf, yellow_goal, field_width, goal_height
+):
     # type: (Tensor, Tensor, Tensor,  Tensor, Tensor, float, float) -> Tuple[Tensor, Tensor, Tensor, Tensor]
     # Negative what we want to reduce, Positive what we want to increase
 
@@ -566,7 +591,7 @@ def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, fiel
     dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
     dist_ball_right_goal = torch.norm(ball_pos - yellow_goal, dim=1)
     grad = dist_ball_left_goal - dist_ball_right_goal
-    
+
     # ENERGY
     energy = -torch.mean(torch.abs(actions), dim=1)
 
