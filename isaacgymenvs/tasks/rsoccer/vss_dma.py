@@ -225,21 +225,21 @@ class VSSDMA(VecTask):
         )
 
     def compute_observations(self):
-        pass
-        # TODO: convert obs from n_fields to n_envs
-        # self.obs_buf[:, :2] = self.ball_pos
-        # self.obs_buf[:, 2:4] = self.ball_vel
-        # self.obs_buf[:, 4 : -self.n_team_actions] = compute_robots_obs(
-        #     self.robots_pos,
-        #     self.robots_vel,
-        #     self.robots_quats,
-        #     self.robots_ang_vel,
-        #     self.n_robots,
-        #     self.num_fields,
-        # )
-        # self.obs_buf[:, -self.n_team_actions :] = self.dof_velocity_buf[
-        #     ..., : self.n_team_actions
-        # ]
+        self.obs_buf[:, :2] = self.ball_pos.repeat_interleave(self.n_controlled_robots, dim=0)
+        self.obs_buf[:, 2:4] = self.ball_vel.repeat_interleave(self.n_controlled_robots, dim=0)
+        permutations = [[0,1,2,3,4,5],[1,2,0,3,4,5],[2,0,1,3,4,5]]
+        permutations = torch.tensor(permutations, device=self.device)
+        self.obs_buf[:, 4 : -self.n_team_actions] = compute_robots_obs(
+            self.robots_pos,
+            self.robots_vel,
+            self.robots_quats,
+            self.robots_ang_vel,
+            self.n_robots,
+            self.num_fields,
+        ).view(-1,self.n_robots,7)[:,permutations].view(-1,self.n_robots*7)
+        permutations = [[0,1,2],[1,2,0],[2,0,1]]
+        permutations = torch.tensor(permutations, device=self.device)
+        self.obs_buf[:, -self.n_team_actions :] = self.dof_velocity_buf[:, permutations].view(-1,self.n_team_actions)
 
     def reset_dones(self):
         env_ids = (
