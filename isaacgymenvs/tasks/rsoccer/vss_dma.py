@@ -172,7 +172,6 @@ class VSSDMA(VecTask):
         self.compute_observations()
 
     def compute_rewards_and_dones(self):
-        # TODO: convert rewards from n_fields to n_envs
         # goal, grad
         _, p_grad, _, p_move = compute_vss_rewards(
             self.ball_pos.unsqueeze(1)
@@ -214,16 +213,16 @@ class VSSDMA(VecTask):
 
         self.rew_buf[:] = goal_rw + grad_rw + energy_rw + move_rw
 
-        # TODO: convert dones from n_fields to n_envs
-        # self.reset_buf = compute_vss_dones(
-        #     ball_pos=self.ball_pos,
-        #     reset_buf=self.reset_buf,
-        #     progress_buf=self.progress_buf,
-        #     max_episode_length=self.max_episode_length,
-        #     field_width=self.field_width,
-        #     goal_height=self.goal_height,
-        # )
-        self.reset_buf *= 0
+        self.reset_buf = compute_vss_dones(
+            ball_pos=self.ball_pos.unsqueeze(1)
+            .expand(-1, self.n_controlled_robots, 2)
+            .reshape(-1, 2),
+            reset_buf=self.reset_buf,
+            progress_buf=self.progress_buf,
+            max_episode_length=self.max_episode_length,
+            field_width=self.field_width,
+            goal_height=self.goal_height,
+        )
 
     def compute_observations(self):
         pass
