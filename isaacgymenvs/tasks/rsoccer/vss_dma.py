@@ -225,37 +225,47 @@ class VSSDMA(VecTask):
         )
 
     def compute_observations(self):
-        self.obs_buf[:, :2] = self.ball_pos.repeat_interleave(self.n_controlled_robots, dim=0)
-        self.obs_buf[:, 2:4] = self.ball_vel.repeat_interleave(self.n_controlled_robots, dim=0)
-        permutations = [[0,1,2,3,4,5],[1,2,0,3,4,5],[2,0,1,3,4,5]]
+        self.obs_buf[:, :2] = self.ball_pos.repeat_interleave(
+            self.n_controlled_robots, dim=0
+        )
+        self.obs_buf[:, 2:4] = self.ball_vel.repeat_interleave(
+            self.n_controlled_robots, dim=0
+        )
+        permutations = [[0, 1, 2, 3, 4, 5], [1, 2, 0, 3, 4, 5], [2, 0, 1, 3, 4, 5]]
         permutations = torch.tensor(permutations, device=self.device)
-        self.obs_buf[:, 4 : -self.n_team_actions] = compute_robots_obs(
-            self.robots_pos,
-            self.robots_vel,
-            self.robots_quats,
-            self.robots_ang_vel,
-            self.n_robots,
-            self.num_fields,
-        ).view(-1,self.n_robots,7)[:,permutations].view(-1,self.n_robots*7)
-        permutations = [[0,1,2],[1,2,0],[2,0,1]]
+        self.obs_buf[:, 4 : -self.n_team_actions] = (
+            compute_robots_obs(
+                self.robots_pos,
+                self.robots_vel,
+                self.robots_quats,
+                self.robots_ang_vel,
+                self.n_robots,
+                self.num_fields,
+            )
+            .view(-1, self.n_robots, 7)[:, permutations]
+            .view(-1, self.n_robots * 7)
+        )
+        permutations = [[0, 1, 2], [1, 2, 0], [2, 0, 1]]
         permutations = torch.tensor(permutations, device=self.device)
-        self.obs_buf[:, -self.n_team_actions :] = self.dof_velocity_buf[:, permutations].view(-1,self.n_team_actions)
+        self.obs_buf[:, -self.n_team_actions :] = self.dof_velocity_buf[
+            :, permutations
+        ].view(-1, self.n_team_actions)
 
     def reset_dones(self):
-        env_ids = (
+        field_ids = (
             self.reset_buf[:: self.n_controlled_robots]
             .nonzero(as_tuple=False)
             .squeeze(-1)
         )
 
-        if len(env_ids) > 0:
+        if len(field_ids) > 0:
             # Reset env state
-            self.root_state[env_ids] = self.env_reset_root_state
+            self.root_state[field_ids] = self.env_reset_root_state
 
             # randomize positions
             rand_pos = (
                 torch.rand(
-                    (len(env_ids), self.n_robots + self.n_balls, 2),
+                    (len(field_ids), self.n_robots + self.n_balls, 2),
                     dtype=torch.float,
                     device=self.device,
                     requires_grad=False,
@@ -289,39 +299,41 @@ class VSSDMA(VecTask):
                 too_close = torch.any(dists < self.min_dist, dim=1)
                 close_ids = too_close.nonzero(as_tuple=False).squeeze(-1)
 
-            self.ball_pos[env_ids] = rand_pos[:, self.ball]
-            self.robots_pos[env_ids] = rand_pos[:, self.robots]
+            self.ball_pos[field_ids] = rand_pos[:, self.ball]
+            self.robots_pos[field_ids] = rand_pos[:, self.robots]
 
             # randomize rotations
             rand_angles = torch_rand_float(
-                -np.pi, np.pi, (len(env_ids), self.n_robots), device=self.device
+                -np.pi, np.pi, (len(field_ids), self.n_robots), device=self.device
             )
-            self.robots_quats[env_ids] = quat_from_angle_axis(rand_angles, self.z_axis)
+            self.robots_quats[field_ids] = quat_from_angle_axis(
+                rand_angles, self.z_axis
+            )
 
             # randomize ball velocities
             if self.cfg['env']['has_initial_ball_vel']:
                 rand_ball_vel = (
                     torch.rand(
-                        (len(env_ids), 2),
+                        (len(field_ids), 2),
                         dtype=torch.float,
                         device=self.device,
                         requires_grad=False,
                     )
                     - 0.5
                 ) * 2
-                self.ball_vel[env_ids] = rand_ball_vel
+                self.ball_vel[field_ids] = rand_ball_vel
 
             self.gym.set_actor_root_state_tensor(
                 self.sim, gymtorch.unwrap_tensor(self.root_state)
             )
 
-            # TODO: rw is by envs, dof and ou by field
+            env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
             self.rw_goal[env_ids] = 0.0
             self.rw_grad[env_ids] = 0.0
             self.rw_energy[env_ids] = 0.0
             self.rw_move[env_ids] = 0.0
-            self.dof_velocity_buf[env_ids] *= 0.0
-            self.ou_buffer[env_ids] *= 0.0
+            self.dof_velocity_buf[field_ids] *= 0.0
+            self.ou_buffer[field_ids] *= 0.0
 
     def _add_ground(self):
         pp = gymapi.PlaneParams()
