@@ -128,7 +128,6 @@ class VSSDMA(VecTask):
         # reset progress_buf for envs reseted on previous step
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
-        # TODO: actions conversions from envs to fields
         self.dof_velocity_buf[:, : self.n_controlled_robots] = _actions.to(
             self.device
         ).view(-1, self.n_controlled_robots, self.n_robot_dofs)
@@ -174,38 +173,46 @@ class VSSDMA(VecTask):
 
     def compute_rewards_and_dones(self):
         # TODO: convert rewards from n_fields to n_envs
-        # # goal, grad
-        # _, p_grad, _, p_move = compute_vss_rewards(
-        #     self.ball_pos,
-        #     self.robots_pos[:, 0:self.n_controlled_robots, :],
-        #     self.dof_velocity_buf[:, :self.num_actions],
-        #     self.rew_buf,
-        #     self.yellow_goal + self.grad_offset,
-        #     self.field_width,
-        #     self.goal_height,
-        # )
-        # self._refresh_tensors()
-        # goal, grad, energy, move = compute_vss_rewards(
-        #     self.ball_pos,
-        #     self.robots_pos[:, 0:self.n_controlled_robots, :],
-        #     self.dof_velocity_buf[:, :self.num_actions],
-        #     self.rew_buf,
-        #     self.yellow_goal + self.grad_offset,
-        #     self.field_width,
-        #     self.goal_height,
-        # )
+        # goal, grad
+        _, p_grad, _, p_move = compute_vss_rewards(
+            self.ball_pos.unsqueeze(1)
+            .expand(-1, self.n_controlled_robots, 2)
+            .reshape(-1, 2),
+            self.robots_pos[:, : self.n_controlled_robots].reshape(-1, 1, 2),
+            self.dof_velocity_buf[:, : self.n_controlled_robots].reshape(
+                -1, self.n_robot_dofs
+            ),
+            self.rew_buf,
+            self.yellow_goal + self.grad_offset,
+            self.field_width,
+            self.goal_height,
+        )
+        self._refresh_tensors()
+        goal, grad, energy, move = compute_vss_rewards(
+            self.ball_pos.unsqueeze(1)
+            .expand(-1, self.n_controlled_robots, 2)
+            .reshape(-1, 2),
+            self.robots_pos[:, : self.n_controlled_robots].reshape(-1, 1, 2),
+            self.dof_velocity_buf[:, : self.n_controlled_robots].reshape(
+                -1, self.n_robot_dofs
+            ),
+            self.rew_buf,
+            self.yellow_goal + self.grad_offset,
+            self.field_width,
+            self.goal_height,
+        )
 
-        # goal_rw = self.w_goal * goal
-        # grad_rw = self.w_grad * (grad - p_grad)
-        # energy_rw = self.w_energy * energy
-        # move_rw = self.w_move * (move - p_move).mean(dim=1)
+        goal_rw = self.w_goal * goal
+        grad_rw = self.w_grad * (grad - p_grad)
+        energy_rw = self.w_energy * energy
+        move_rw = self.w_move * (move - p_move).mean(dim=1)
 
-        # self.rw_goal += goal_rw
-        # self.rw_grad += grad_rw
-        # self.rw_energy += energy_rw
-        # self.rw_move += move_rw
+        self.rw_goal += goal_rw
+        self.rw_grad += grad_rw
+        self.rw_energy += energy_rw
+        self.rw_move += move_rw
 
-        # self.rew_buf[:] = goal_rw + grad_rw + energy_rw + move_rw
+        self.rew_buf[:] = goal_rw + grad_rw + energy_rw + move_rw
 
         # TODO: convert dones from n_fields to n_envs
         # self.reset_buf = compute_vss_dones(
