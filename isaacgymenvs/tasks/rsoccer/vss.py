@@ -157,7 +157,7 @@ class VSS(VecTask):
         _, p_grad, _, p_move = compute_vss_rewards(
             self.ball_pos,
             self.robots_pos[:, 0:self.n_controlled_robots, :],
-            self.dof_velocity_buf[:, :self.num_actions],
+            self.dof_velocity_buf[:, :self.num_actions].view(-1, self.n_controlled_robots, self.num_actions),
             self.rew_buf,
             self.yellow_goal + self.grad_offset,
             self.field_width,
@@ -167,7 +167,7 @@ class VSS(VecTask):
         goal, grad, energy, move = compute_vss_rewards(
             self.ball_pos,
             self.robots_pos[:, 0:self.n_controlled_robots, :],
-            self.dof_velocity_buf[:, :self.num_actions],
+            self.dof_velocity_buf[:, :self.num_actions].view(-1, self.n_controlled_robots, self.num_actions),
             self.rew_buf,
             self.yellow_goal + self.grad_offset,
             self.field_width,
@@ -561,7 +561,7 @@ def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, fiel
     grad = dist_ball_left_goal - dist_ball_right_goal
     
     # ENERGY
-    energy = -torch.mean(torch.abs(actions), dim=1)
+    energy = -torch.mean(torch.abs(actions), dim=-1)
 
     # goal, grad, energy, move
     return goal, grad, energy, move
