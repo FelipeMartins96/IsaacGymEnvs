@@ -45,7 +45,7 @@ class VSS(VecTask):
         self.min_dist = 0.07
 
         self.w_goal = 10
-        self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
+        self.w_grad = 0.8 if self.cfg['env']['has_grad'] else 0
         self.w_energy = 2e-4 if self.cfg['env']['has_energy'] else 0
         self.w_move = 0.2 if self.cfg['env']['has_move'] else 0
 
@@ -178,7 +178,7 @@ class VSS(VecTask):
         )
 
         goal_rw = self.w_goal * goal
-        grad_rw = self.w_grad * (grad - p_grad)
+        grad_rw = self.w_grad * torch.clip((grad - p_grad)*3 / self.cfg['sim']['dt'], -5., 5.)
         energy_rw = self.w_energy * energy.mean(dim=1)
         move_rw = self.w_move * move.mean(dim=1)
 
@@ -560,10 +560,18 @@ def compute_vss_rewards(ball_pos, robot_pos, robot_vel, actions, rew_buf, yellow
     move = (robot_ball_dir*robot_vel).mean(-1)
     move = torch.clip(move / 0.4, -5.0, 5.0)
 
-    # GRAD
-    dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
-    dist_ball_right_goal = torch.norm(ball_pos - yellow_goal, dim=1)
-    grad = dist_ball_left_goal - dist_ball_right_goal
+    # # GRAD
+
+    blue_goal = -yellow_goal
+    ball_lg_vec = ball_pos - blue_goal
+    ball_rg_vec = ball_pos - yellow_goal
+
+    ball_lg_vec[:,1] *= 2
+    ball_rg_vec[:,1] *= 2
+
+    dist_1 = -torch.norm(ball_rg_vec, dim=1)
+    dist_2 = torch.norm(ball_lg_vec, dim=1)
+    grad = ((dist_1 + dist_2) / field_width - 1) / 2
     
     # ENERGY
     energy = -torch.mean(torch.abs(actions.view(-1,3,2))/0.000576, dim=-1)
