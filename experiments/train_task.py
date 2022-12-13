@@ -102,7 +102,7 @@ def train(args) -> None:
     writer = SummaryWriter()
     device = "cuda:0"
     lr = 3e-4
-    total_timesteps = 400000 if not args.record else 1100
+    total_timesteps = 400000 if not False else 1100
     learning_starts = 1e7
     batch_size = 4096
     gamma = 0.99
@@ -114,7 +114,7 @@ def train(args) -> None:
     n_actions = n_controlled_robots * 2
 
     actor = Actor(task, n_actions).to(device=device)
-    if args.record:
+    if False:
         actor.load_state_dict(torch.load(args.checkpoint))
     qf1 = QNetwork(task, n_actions).to(device=device)
     qf1_target = QNetwork(task, n_actions).to(device=device)
@@ -155,7 +155,7 @@ def train(args) -> None:
 
         with torch.no_grad():
             exp_noise = random_ou(exp_noise)
-            if args.record:
+            if False:
                 actions = actor(obs['obs'])
             elif rb.get_total_count() < learning_starts:
                 actions = exp_noise
@@ -182,7 +182,7 @@ def train(args) -> None:
             dones = dones.logical_and(infos["time_outs"].logical_not())
             exp_noise[env_ids] *= 0.0
 
-        if not args.record and ep_count and global_step % task.max_episode_length == 0:
+        if not False and ep_count and global_step % task.max_episode_length == 0:
             rewards_info /= ep_count
             ep_count = 0
             writer.add_scalar("episode_lengths/iter",rewards_info[0],global_step)
@@ -208,7 +208,7 @@ def train(args) -> None:
         obs = deepcopy(next_obs)
 
         # ALGO LOGIC: training.
-        if not args.record and rb.get_total_count() > learning_starts:
+        if not False and rb.get_total_count() > learning_starts:
             data = rb.sample(batch_size)
             with torch.no_grad():
                 next_state_actions = target_actor(data['next_observations'])
@@ -262,7 +262,7 @@ def train(args) -> None:
                     actor.state_dict(),
                     f"{writer.get_logdir()}/actor{args.experiment}.pth",
                 )
-    if not args.record:
+    if not False:
         torch.save(
             actor.state_dict(),
             f"{writer.get_logdir()}/actor{args.experiment}.pth",

@@ -11,7 +11,7 @@ env:
   has_move: True
   has_initial_ball_vel: True
   has_env_ou_noise: True
-  n_controlled_robots: 3
+  n_controlled_robots: 1
 
 sim:
   dt: 0.025 # 1/40 s
