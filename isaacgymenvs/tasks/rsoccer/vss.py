@@ -176,7 +176,7 @@ class VSS(VecTask):
 
         goal_rw = self.w_goal * goal
         grad_rw = self.w_grad * (grad - p_grad)
-        energy_rw = self.w_energy * energy
+        energy_rw = self.w_energy * energy.mean(dim=1)
         move_rw = self.w_move * (move - p_move).mean(dim=1)
 
         self.rw_goal += goal_rw
