@@ -109,6 +109,7 @@ class VSS(VecTask):
         # reset progress_buf for envs reseted on previous step
         env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
         self.progress_buf[env_ids] = 0
+        _actions[torch.abs(_actions) < 0.05] = 0.0
         self.dof_velocity_buf[:, :self.num_actions] = _actions.to(self.device)
         
         # Send OU noise action to non controlled robots

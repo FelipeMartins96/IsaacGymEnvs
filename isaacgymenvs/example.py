@@ -5,7 +5,7 @@ import torch
 n_envs=6
 envs = isaacgymenvs.make(
 	seed=0, 
-	task="VSSDecentralizedMA", 
+	task="VSS", 
 	num_envs=n_envs,
 	sim_device="cuda:0",
 	rl_device="cuda:0",
