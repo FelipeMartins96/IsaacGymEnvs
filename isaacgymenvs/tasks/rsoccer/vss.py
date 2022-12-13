@@ -158,6 +158,7 @@ class VSS(VecTask):
         _, p_grad, _, _ = compute_vss_rewards(
             self.ball_pos,
             self.robots_pos[:, 0:self.n_controlled_robots, :],
+            self.robots_vel[:, 0:self.n_controlled_robots, :],
             self.dof_velocity_buf[:, :self.num_actions],
             self.rew_buf,
             self.yellow_goal + self.grad_offset,
@@ -168,6 +169,7 @@ class VSS(VecTask):
         goal, grad, energy, move = compute_vss_rewards(
             self.ball_pos,
             self.robots_pos[:, 0:self.n_controlled_robots, :],
+            self.robots_vel[:, 0:self.n_controlled_robots, :],
             self.dof_velocity_buf[:, :self.num_actions],
             self.rew_buf,
             self.yellow_goal + self.grad_offset,
@@ -537,8 +539,8 @@ class VSS(VecTask):
 
 
 @torch.jit.script
-def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, field_width, goal_height):
-    # type: (Tensor, Tensor, Tensor,  Tensor, Tensor, float, float) -> Tuple[Tensor, Tensor, Tensor, Tensor]
+def compute_vss_rewards(ball_pos, robot_pos, robot_vel, actions, rew_buf, yellow_goal, field_width, goal_height):
+    # type: (Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, float, float) -> Tuple[Tensor, Tensor, Tensor, Tensor]
     # Negative what we want to reduce, Positive what we want to increase
 
     zeros = torch.zeros_like(rew_buf)
@@ -555,7 +557,7 @@ def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, fiel
 
     # MOVE
     robot_ball_dir = torch.nn.functional.normalize(robot_pos - ball_pos.unsqueeze(1), dim=-1)
-    move = (robot_ball_dir*robot_pos).mean(-1)
+    move = (robot_ball_dir*robot_vel).mean(-1)
     move = torch.clip(move / 0.4, -5.0, 5.0)
 
     # GRAD
