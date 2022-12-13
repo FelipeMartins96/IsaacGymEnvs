@@ -48,10 +48,12 @@ from .allegro_hand import AllegroHand
 from .trifinger import Trifinger
 
 from .rsoccer.vss import VSS
+from .rsoccer.vss_dma import VSSDMA
 
 # Mappings from strings to environments
 isaacgym_task_map = {
     "VSS": VSS,
+    "VSSDecentralizedMA": VSSDMA,
     "AllegroHand": AllegroHand,
     "Ant": Ant,
     "Anymal": Anymal,

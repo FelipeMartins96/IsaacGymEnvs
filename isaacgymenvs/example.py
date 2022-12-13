@@ -2,10 +2,11 @@ import isaacgym
 import isaacgymenvs
 import torch
 
+n_envs=6
 envs = isaacgymenvs.make(
 	seed=0, 
-	task="VSS", 
-	num_envs=2000,
+	task="VSSDecentralizedMA", 
+	num_envs=n_envs,
 	sim_device="cuda:0",
 	rl_device="cuda:0",
     graphics_device_id=0,
@@ -15,5 +16,5 @@ print("Action space is", envs.action_space)
 obs = envs.reset()
 for _ in range(200):
 	obs, reward, done, info = envs.step(
-		torch.rand((2000,)+envs.action_space.shape, device="cuda:0") - 0.5
+		torch.rand((n_envs,)+envs.action_space.shape, device="cuda:0") - 0.5
 	)
