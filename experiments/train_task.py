@@ -1,4 +1,3 @@
-import argparse
 import hydra
 import gym
 import isaacgym
@@ -15,6 +14,7 @@ import random
 from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
 from torch.utils.tensorboard import SummaryWriter
 from isaacgymenvs.learning.replay_buffer import ReplayBuffer
+from isaacgymenvs.utils.reformat import omegaconf_to_dict
 
 # ALGO LOGIC: initialize agent here:
 class QNetwork(nn.Module):
@@ -60,41 +60,44 @@ class Actor(nn.Module):
         x = torch.tanh(self.fc_mu(x))
         return x
 
-
-def train(args) -> None:
+@hydra.main(config_name="config", config_path="../isaacgymenvs/cfg")
+def train(cfg) -> None:
+    assert len(cfg.experiment)
     # TRY NOT TO MODIFY: seeding
-    random.seed(args.seed)
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-
+    random.seed(cfg.seed)
+    np.random.seed(cfg.seed)
+    torch.manual_seed(cfg.seed)
     task = isaacgymenvs.make(
-        seed=args.seed,
-        task="VSS",
-        num_envs=args.num_envs,
+        seed=cfg.seed,
+        task=cfg.task_name,
+        num_envs=cfg.task.env.numEnvs,
         sim_device="cuda:0",
         rl_device="cuda:0",
         graphics_device_id=0,
-        headless=not args.record,
-        virtual_screen_capture=args.record,
+        headless=cfg.headless,
+        virtual_screen_capture=cfg.capture_video,
         force_render=False,
+        cfg=cfg,
     )
-    if args.wandb:
+    cfg_dict = omegaconf_to_dict(cfg)
+    if cfg.wandb_activate:
         import wandb
         run = wandb.init(
-            project='isaacgymenvs',
-            group='',
-            entity='felipemartins',
+            project=cfg.wandb_project,
+            group=cfg.wandb_group,
+            entity=cfg.wandb_entity,
             sync_tensorboard=True,
-            name=args.experiment,
+            name=cfg.experiment,
             resume="allow",
             monitor_gym=True,
+            config=cfg_dict,
         )
 
-    if args.record:
+    if cfg.capture_video:
             task.is_vector_env = True
             task = gym.wrappers.RecordVideo(
                 task,
-                f"videos/{args.experiment}",
+                f"videos/{cfg.experiment}",
                 step_trigger=lambda step: step % 10000 == 0,
                 video_length=1000,
             )
@@ -105,7 +108,7 @@ def train(args) -> None:
     total_timesteps = 400000 if not False else 1100
     learning_starts = 1e7
     batch_size = 4096
-    gamma = 0.99
+    gamma = cfg.train.params.config.gamma
     tau = 0.005
     rb_size = 10000000
 
@@ -260,22 +263,14 @@ def train(args) -> None:
             if global_step % 10000 == 0:
                 torch.save(
                     actor.state_dict(),
-                    f"{writer.get_logdir()}/actor{args.experiment}.pth",
+                    f"{writer.get_logdir()}/actor{cfg.experiment}.pth",
                 )
     if not False:
         torch.save(
             actor.state_dict(),
-            f"{writer.get_logdir()}/actor{args.experiment}.pth",
+            f"{writer.get_logdir()}/actor{cfg.experiment}.pth",
         )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--record", default=False, action="store_true")
-    parser.add_argument("--wandb", default=False, action="store_true")
-    parser.add_argument("--experiment", default='', type=str)
-    parser.add_argument("--checkpoint", default='', type=str)
-    parser.add_argument("--num-envs", default=1, type=int)
-    parser.add_argument("--seed", default=0, type=int)
-    args = parser.parse_args()
-    train(args)
+    train()
