@@ -265,7 +265,7 @@ def train(cfg) -> None:
                 )
 
         if logs:
-            logs.update({'global_step': global_step})
+            logs.update({'global_step': global_step*task.num_envs})
             wandb.log(logs)
     if not False:
         torch.save(
