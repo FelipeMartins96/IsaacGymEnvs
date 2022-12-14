@@ -102,7 +102,7 @@ def train(cfg) -> None:
                 video_length=1000,
             )
 
-    writer = SummaryWriter()
+    writer = SummaryWriter(comment=cfg.experiment)
     device = "cuda:0"
     lr = 3e-4
     total_timesteps = 400000 if not False else 1100
