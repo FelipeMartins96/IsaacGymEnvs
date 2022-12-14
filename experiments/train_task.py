@@ -86,7 +86,7 @@ def train(cfg) -> None:
             project=cfg.wandb_project,
             group=cfg.wandb_group,
             entity=cfg.wandb_entity,
-            sync_tensorboard=True,
+            sync_tensorboard=False,
             name=cfg.experiment,
             resume="allow",
             monitor_gym=True,
@@ -154,6 +154,7 @@ def train(cfg) -> None:
     exp_noise = task.zero_actions()
 
     for global_step in range(total_timesteps):
+        logs = {}
         # ALGO LOGIC: put action logic here
 
         with torch.no_grad():
@@ -188,12 +189,14 @@ def train(cfg) -> None:
         if not False and ep_count and global_step % task.max_episode_length == 0:
             rewards_info /= ep_count
             ep_count = 0
-            writer.add_scalar("episode_lengths/iter",rewards_info[0],global_step)
-            writer.add_scalar("charts/episodic_goal",rewards_info[1],global_step)
-            writer.add_scalar("charts/episodic_grad",rewards_info[2],global_step)
-            writer.add_scalar("charts/episodic_energy",rewards_info[3],global_step)
-            writer.add_scalar("charts/episodic_move",rewards_info[4],global_step)
-            writer.add_scalar("rewards/iter",rewards_info[1:].sum(),global_step)
+            logs.update({
+                "episode_lengths/iter" : rewards_info[0].clone(),
+                "charts/episodic_goal" : rewards_info[1].clone(),
+                "charts/episodic_grad" : rewards_info[2].clone(),
+                "charts/episodic_energy" : rewards_info[3].clone(),
+                "charts/episodic_move" : rewards_info[4].clone(),
+                "rewards/iter" : rewards_info[1:].sum(),
+            })
             rewards_info *= 0
 
         # TRY NOT TO MODIFY: save data to replay buffer;
@@ -248,23 +251,22 @@ def train(cfg) -> None:
                 )
 
             if global_step % task.max_episode_length == 0:
-                writer.add_scalar("losses/qf1_loss", qf1_loss.item(), global_step)
-                writer.add_scalar("losses/actor_loss", actor_loss.item(), global_step)
-                writer.add_scalar(
-                    "losses/qf1_values", qf1_a_values.mean().item(), global_step
-                )
-                # print("SPS:", int(global_step / (time.time() - start_time)))
-                writer.add_scalar(
-                    "charts/SPS",
-                    int(global_step / (time.time() - start_time)),
-                    global_step,
-                )
+                logs.update({
+                    "losses/qf1_loss" : qf1_loss.item(),
+                    "losses/actor_loss" : actor_loss.item(),
+                    "losses/qf1_values" : qf1_a_values.mean().item(),
+                    "charts/SPS" : int(global_step / (time.time() - start_time))
+                })
 
             if global_step % 10000 == 0:
                 torch.save(
                     actor.state_dict(),
                     f"{writer.get_logdir()}/actor{cfg.experiment}.pth",
                 )
+
+        if logs:
+            logs.update({'global_step': global_step})
+            wandb.log(logs)
     if not False:
         torch.save(
             actor.state_dict(),
