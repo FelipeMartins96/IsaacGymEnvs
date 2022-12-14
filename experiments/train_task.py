@@ -105,7 +105,7 @@ def train(cfg) -> None:
     writer = SummaryWriter(comment=cfg.experiment)
     device = "cuda:0"
     lr = 3e-4
-    total_timesteps = 400000 if not False else 1100
+    total_timesteps = 50000 if not False else 1100
     learning_starts = 1e7
     batch_size = 4096
     gamma = cfg.train.params.config.gamma
