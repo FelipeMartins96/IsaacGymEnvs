@@ -5,11 +5,12 @@ import torch
 n_envs=6
 envs = isaacgymenvs.make(
 	seed=0, 
-	task="VSSDecentralizedMA", 
+	task="VSS", 
 	num_envs=n_envs,
 	sim_device="cuda:0",
 	rl_device="cuda:0",
     graphics_device_id=0,
+	headless=True
 )
 print("Observation space is", envs.observation_space)
 print("Action space is", envs.action_space)
