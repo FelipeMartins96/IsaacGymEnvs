@@ -12,7 +12,7 @@ env:
   has_initial_ball_vel: True
   has_env_ou_noise: True
   n_controlled_robots: 1
-  rand_speed_scheduler_max_step: 50000
+  rand_speed_scheduler_max_step: 100000
 
 sim:
   dt: 0.05 # 1/20 s

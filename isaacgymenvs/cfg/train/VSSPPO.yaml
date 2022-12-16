@@ -49,7 +49,7 @@ params:
     gamma: 0.99
     tau: 0.95
     learning_rate: 1e-3 
-    lr_schedule: None
+    lr_schedule: adaptive
     kl_threshold: 0.008
     score_to_win: 100
     max_epochs: ${resolve_default:400,${....max_iterations}}
