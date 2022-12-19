@@ -52,6 +52,7 @@ class VSS(VecTask):
         self.ou_theta = 0.1
         self.ou_sigma = 0.2
         self.step_count = 0
+        self.speed_factor = 0
 
         self.n_team_actions = self.n_robots_per_team * self.n_robot_dofs
         self.cfg['env']['numActions'] = self.n_controlled_robots * self.n_robot_dofs
@@ -125,7 +126,7 @@ class VSS(VecTask):
                     requires_grad=False,
                 )
             )
-            self.ou_buffer = torch.clamp(self.ou_buffer, -1.0, 1.0) * (self.step_count / self.cfg['env']['rand_speed_scheduler_max_step'])
+            self.ou_buffer = torch.clamp(self.ou_buffer, -1.0, 1.0) * self.speed_factor
             self.dof_velocity_buf[..., self.num_actions:] = self.ou_buffer
 
 
@@ -135,6 +136,7 @@ class VSS(VecTask):
     def post_physics_step(self):
         self.progress_buf += 1
         self.step_count += 1
+        self.speed_factor = max(1.0, self.step_count / self.cfg['env']['rand_speed_scheduler_max_step'])
 
         self.compute_rewards_and_dones()
 
@@ -276,7 +278,7 @@ class VSS(VecTask):
                     )
                     - 0.5
                 ) * 1
-                self.ball_vel[env_ids] = rand_ball_vel * (self.step_count / self.cfg['env']['rand_speed_scheduler_max_step'])
+                self.ball_vel[env_ids] = rand_ball_vel * self.speed_factor
 
             self.gym.set_actor_root_state_tensor(
                 self.sim, gymtorch.unwrap_tensor(self.root_state)
