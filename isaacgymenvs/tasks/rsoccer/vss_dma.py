@@ -55,11 +55,12 @@ class VSSDMA(VecTask):
 
         self.w_goal = 10
         self.w_grad = 2 if self.cfg['env']['has_grad'] else 0
-        self.w_energy = 1 / 400 if self.cfg['env']['has_energy'] else 0
+        self.w_energy = 1 / 500 if self.cfg['env']['has_energy'] else 0
         self.w_move = 3 if self.cfg['env']['has_move'] else 0
 
         self.ou_theta = 0.1
         self.ou_sigma = 0.2
+        self.step_count = 0
 
         self.n_team_actions = self.n_robots_per_team * self.n_robot_dofs
         self.cfg['env']['numActions'] = self.n_robot_dofs
@@ -144,7 +145,7 @@ class VSSDMA(VecTask):
                     requires_grad=False,
                 )
             )
-            self.ou_buffer = torch.clamp(self.ou_buffer, -1.0, 1.0)
+            self.ou_buffer = torch.clamp(self.ou_buffer, -1.0, 1.0) * (self.step_count / self.cfg['env']['rand_speed_scheduler_max_step'])
             self.dof_velocity_buf[:, self.n_controlled_robots :] = self.ou_buffer
 
         act = self.dof_velocity_buf * self.robot_max_wheel_rad_s
@@ -152,6 +153,7 @@ class VSSDMA(VecTask):
 
     def post_physics_step(self):
         self.progress_buf += 1
+        self.step_count += 1
 
         self.compute_rewards_and_dones()
 
@@ -320,8 +322,8 @@ class VSSDMA(VecTask):
                         requires_grad=False,
                     )
                     - 0.5
-                ) * 2
-                self.ball_vel[field_ids] = rand_ball_vel
+                ) * 1
+                self.ball_vel[field_ids] = rand_ball_vel * (self.step_count / self.cfg['env']['rand_speed_scheduler_max_step'])
 
             self.gym.set_actor_root_state_tensor(
                 self.sim, gymtorch.unwrap_tensor(self.root_state)
