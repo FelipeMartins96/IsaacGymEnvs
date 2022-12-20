@@ -59,7 +59,7 @@ def launch_rlg_hydra(cfg: DictConfig):
     import isaacgymenvs
 
     time_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    run_name = f"{cfg.wandb_name}_{time_str}"
+    run_name = f"{cfg.wandb_name}_{cfg.seed}"
 
     # ensure checkpoints can be specified as relative paths
     if cfg.checkpoint:
