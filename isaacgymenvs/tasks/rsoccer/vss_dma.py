@@ -157,7 +157,7 @@ class VSSDMA(VecTask):
         self.step_count += 1
         self.extras["step_count"] = self.step_count
         self.extras['speed_factor'] = self.speed_factor
-        self.speed_factor = max(1.0, self.step_count / self.cfg['env']['rand_speed_scheduler_max_step'])
+        self.speed_factor = min(1.0, self.step_count / self.cfg['env']['rand_speed_scheduler_max_step'])
 
         self.compute_rewards_and_dones()
 
