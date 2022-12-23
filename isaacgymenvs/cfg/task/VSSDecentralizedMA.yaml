@@ -8,7 +8,7 @@ env:
   numEnvs: ${resolve_default:4095,${...num_envs}}
   has_grad: True
   has_energy: True
-  has_move: True
+  has_move: False
   has_initial_ball_vel: True
   has_env_ou_noise: True
   n_controlled_robots: 3
