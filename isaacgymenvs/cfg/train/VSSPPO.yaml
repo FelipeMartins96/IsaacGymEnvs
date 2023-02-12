@@ -34,7 +34,7 @@ params:
   load_path: ${...checkpoint} # path to the checkpoint to load
 
   config:
-    name: ${resolve_default:VSS,${....experiment}}_${....seed}
+    name: ${resolve_default:VSS,${....wandb_group}_${....experiment}}_${....seed}
     device: ${....device}
     full_experiment_name: ${.name}
     env_name: rlgpu
@@ -53,7 +53,7 @@ params:
     kl_threshold: 0.008
     score_to_win: 100
     max_epochs: ${resolve_default:1000,${....max_iterations}}
-    save_best_after: 25
+    save_best_after: 600
     save_frequency: 500
     grad_norm: 1.5
     entropy_coef: 0.0
