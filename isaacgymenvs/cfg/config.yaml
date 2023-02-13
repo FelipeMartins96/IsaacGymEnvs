@@ -45,7 +45,7 @@ wandb_activate: True
 wandb_group: ''
 wandb_name: ${train.params.config.name}
 wandb_entity: 'felipemartins'
-wandb_project: 'isaacgymenvs-5'
+wandb_project: 'msc-isaac-ppo'
 capture_video: False
 capture_video_freq: 10000
 capture_video_len: 200
