@@ -281,7 +281,7 @@ class VSS(VecTask):
                         requires_grad=False,
                     )
                     - 0.5
-                ) * 1
+                ) * 2
                 self.ball_vel[env_ids] = rand_ball_vel * self.speed_factor
 
             self.gym.set_actor_root_state_tensor(
