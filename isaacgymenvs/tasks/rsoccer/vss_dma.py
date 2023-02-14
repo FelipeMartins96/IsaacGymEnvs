@@ -164,15 +164,18 @@ class VSSDMA(VecTask):
         # Save observations previously to resets
         self.compute_observations()
         self.extras["terminal_observation"] = self.obs_buf.clone().to(self.rl_device)
-        self.extras["terminal_rewards"] = {
-            "goal": self.rw_goal.clone().to(self.rl_device),
-            "grad": self.rw_grad.clone().to(self.rl_device),
-            "energy": self.rw_energy.clone().to(self.rl_device),
-            "move": self.rw_move.clone().to(self.rl_device),
-        }
         self.extras["progress_buffer"] = (
             self.progress_buf.clone().to(self.rl_device).float()
         )
+        env_ids = self.reset_buf.nonzero(as_tuple=False).squeeze(-1)
+        if len(env_ids):
+            self.extras['episode'] = {
+                "goal": self.rw_goal[env_ids].clone().to(self.rl_device),
+                "grad": self.rw_grad[env_ids].clone().to(self.rl_device),
+                "energy": self.rw_energy[env_ids].clone().to(self.rl_device),
+                "move": self.rw_move[env_ids].clone().to(self.rl_device),
+            }
+
 
         self.reset_dones()
         self.compute_observations()
