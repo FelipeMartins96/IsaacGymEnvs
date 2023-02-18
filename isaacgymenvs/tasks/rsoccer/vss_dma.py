@@ -329,7 +329,7 @@ class VSSDMA(VecTask):
                         requires_grad=False,
                     )
                     - 0.5
-                ) * 2
+                ) * 1
                 self.ball_vel[field_ids] = rand_ball_vel * self.speed_factor
 
             self.gym.set_actor_root_state_tensor(
