@@ -186,9 +186,9 @@ class VSS(VecTask):
         grad_rw = self.w_grad * (grad - p_grad)
         energy_rw = self.w_energy * energy.mean(dim=1)
         # move and p_move is the negative robot distance to the ball
-        closest_indices = p_move.max(dim=1).indices.unsqueeze(1)
-        move_rw = self.w_move * (move.gather(1, closest_indices) - p_move.gather(1, closest_indices)).squeeze(1)
-        # move_rw = self.w_move * (move - p_move).mean(dim=1)\
+        # closest_indices = p_move.max(dim=1).indices.unsqueeze(1)
+        # move_rw = self.w_move * (move.gather(1, closest_indices) - p_move.gather(1, closest_indices)).squeeze(1)
+        move_rw = self.w_move * (move - p_move).mean(dim=1)
 
         self.rw_goal += goal_rw
         self.rw_grad += grad_rw
@@ -564,7 +564,8 @@ def compute_vss_rewards(ball_pos, robot_pos, actions, rew_buf, yellow_goal, fiel
     goal = torch.where(is_goal_yellow, -ones, goal)
 
     # MOVE
-    move = -torch.norm(robot_pos - ball_pos.unsqueeze(1), dim=-1)
+    # move = -torch.norm(robot_pos - ball_pos.unsqueeze(1), dim=-1)
+    move = -torch.norm(robot_pos.mean(1) - ball_pos, dim=-1).unsqueeze(1)
 
     # GRAD
     dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
