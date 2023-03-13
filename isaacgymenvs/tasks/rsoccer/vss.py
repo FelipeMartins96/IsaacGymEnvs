@@ -185,7 +185,10 @@ class VSS(VecTask):
         goal_rw = self.w_goal * goal
         grad_rw = self.w_grad * (grad - p_grad)
         energy_rw = self.w_energy * energy.mean(dim=1)
-        move_rw = self.w_move * (move - p_move).mean(dim=1)
+        # move and p_move is the negative robot distance to the ball
+        closest_indices = p_move.max(dim=1).indices.unsqueeze(1)
+        move_rw = self.w_move * (move.gather(1, closest_indices) - p_move.gather(1, closest_indices)).squeeze(1)
+        # move_rw = self.w_move * (move - p_move).mean(dim=1)\
 
         self.rw_goal += goal_rw
         self.rw_grad += grad_rw
