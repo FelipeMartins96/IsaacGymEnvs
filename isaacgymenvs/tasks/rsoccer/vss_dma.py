@@ -214,16 +214,16 @@ class VSSDMA(VecTask):
         grad_rw = self.w_grad * (grad - p_grad)
         energy_rw = self.w_energy * energy
         ## individual move rw
-        # move_rw = self.w_move * (move - p_move).mean(dim=1)
+        move_rw = self.w_move * (move - p_move).mean(dim=1)
         
         # shared move reward for the team
         # move_rw = self.w_move * (move - p_move).view(-1, self.n_controlled_robots).mean(dim=1)
         # move_rw = move_rw.unsqueeze(1).expand(-1, self.n_controlled_robots).reshape(-1)
 
         # shared move reward for the team, move reward is calculated for the robot closest to the ball
-        p_closest = p_move.view(-1, self.n_controlled_robots).max(dim=1)
-        move_rw = self.w_move * (move.view(-1, self.n_controlled_robots).gather(-1, p_closest.indices.unsqueeze(1)) - p_closest.values.unsqueeze(1))
-        move_rw = move_rw.expand(-1, self.n_controlled_robots).reshape(-1)
+        # p_closest = p_move.view(-1, self.n_controlled_robots).max(dim=1)
+        # move_rw = self.w_move * (move.view(-1, self.n_controlled_robots).gather(-1, p_closest.indices.unsqueeze(1)) - p_closest.values.unsqueeze(1))
+        # move_rw = move_rw.expand(-1, self.n_controlled_robots).reshape(-1)
 
         self.rw_goal += goal_rw
         self.rw_grad += grad_rw
@@ -622,7 +622,12 @@ def compute_vss_rewards(
     goal = torch.where(is_goal_yellow, -ones, goal)
 
     # MOVE
-    move = -torch.norm(robot_pos - ball_pos.unsqueeze(1), dim=-1)
+    ## individual move calculation
+    # move = -torch.norm(robot_pos - ball_pos.unsqueeze(1), dim=-1)
+    
+    ## move calculation for mean robot position
+    mean_robot_pos = robot_pos.view(-1,3,2).mean(1).unsqueeze(1).expand(-1,3,2).reshape(-1,1,2)
+    move = -torch.norm(mean_robot_pos - ball_pos.unsqueeze(1), dim=-1)
 
     # GRAD
     dist_ball_left_goal = torch.norm(ball_pos - (-yellow_goal), dim=1)
