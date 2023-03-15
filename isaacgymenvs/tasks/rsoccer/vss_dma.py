@@ -213,7 +213,11 @@ class VSSDMA(VecTask):
         goal_rw = self.w_goal * goal
         grad_rw = self.w_grad * (grad - p_grad)
         energy_rw = self.w_energy * energy
-        move_rw = self.w_move * (move - p_move).mean(dim=1)
+        ## individual move rw
+        # move_rw = self.w_move * (move - p_move).mean(dim=1)
+        # shared move reward for the team
+        move_rw = self.w_move * (move - p_move).view(-1, self.n_controlled_robots).mean(dim=1)
+        move_rw = move_rw.unsqueeze(1).expand(-1, self.n_controlled_robots).reshape(-1)
 
         self.rw_goal += goal_rw
         self.rw_grad += grad_rw
