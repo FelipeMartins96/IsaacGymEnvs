@@ -223,6 +223,7 @@ class VSSDMA(VecTask):
         # shared move reward for the team, move reward is calculated for the robot closest to the ball
         p_closest = p_move.view(-1, self.n_controlled_robots).max(dim=1)
         move_rw = self.w_move * (move.view(-1, self.n_controlled_robots).gather(-1, p_closest.indices.unsqueeze(1)) - p_closest.values.unsqueeze(1))
+        move_rw = move_rw.expand(-1, self.n_controlled_robots).reshape(-1)
 
         self.rw_goal += goal_rw
         self.rw_grad += grad_rw
